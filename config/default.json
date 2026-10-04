@@ -16,7 +16,7 @@
       },
       "poisoned": {
         "name": "中毒",
-        "description": "战斗回合末生命−1，持续3回合。",
+        "description": "战斗回合末生命−2，持续3回合。",
         "polarity": "negative",
         "clock": "battle",
         "duration": 3,
@@ -702,7 +702,7 @@
     "ORIGINS": {
       "strong": {
         "name": "强壮之人",
-        "description": "生命、饱食、水分上限各+10。",
+        "description": "”强壮的身体素质在航行中是重要的。“\n生命、饱食、水分上限各+10。",
         "modifiers": {
           "hpMax": 10,
           "hungerMax": 10,
@@ -711,12 +711,12 @@
       },
       "fool": {
         "name": "愚者",
-        "description": "事件及未燃灯的精神损失少5。",
+        "description": "”愚笨在这个世界中未必不是一种礼物。“\n、事件及未燃灯的精神损失少5。",
         "reduceSanityLoss": 5
       },
       "restless": {
         "name": "多动症",
-        "description": "基地和战斗AP上限各+1（实验）。",
+        "description": "”你拥有优秀的动手能力。“\n基地和战斗AP上限各+1（实验）。",
         "modifiers": {
           "baseAp": 1,
           "battleAp": 1
@@ -724,19 +724,19 @@
       },
       "hoarder": {
         "name": "囤积癖",
-        "description": "手牌上限+1。",
+        "description": "”有些人总是不喜欢扔东西。”\n手牌上限+1。",
         "modifiers": {
           "handLimit": 1
         }
       },
       "zealot": {
         "name": "战斗狂热",
-        "description": "普通战斗撤退损失减少5（实验）。",
+        "description": "”也许你上辈子是罗马人。“\n普通战斗撤退损失减少5（实验）。",
         "retreatReduction": 5
       },
       "skeptic": {
         "name": "无魔之人",
-        "description": "免疫敌方战斗Debuff；实体污染牌仍需处理。",
+        "description": "“唯物主义者是这样的”\n免疫敌方战斗Debuff；实体污染牌仍需处理。",
         "enemyBuffImmune": true
       }
     },
@@ -924,9 +924,9 @@
       "cloth"
     ],
     "SURVIVAL": {
-      "hungerDamage": 2,
-      "hydrationDamage": 3,
-      "maxDamage": 4
+      "hungerDamage": 5,
+      "hydrationDamage": 5,
+      "maxDamage": 10
     },
     "TECH": {
       "knowledge": {

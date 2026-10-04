@@ -43,7 +43,7 @@ export class GameSession{
    if(['BuyMeta','UnlockTech'].includes(command.type)){if(this.state&&ACTIVE_PHASES.includes(this.state.phase))throw new Error('回到主页后再进行局外操作');profileCommand(this.profile,command);}
    else if(command.type==='NewGame')this.newGame(command);
    else if(command.type==='ReturnHome'){if(this.state&&this.state.phase!=='finished')throw new Error('请先保存或结束本局');this.state=null;}
-   else{if(!this.state)throw new Error('请先开始游戏');const ctx=context(this.state,this.profile);this.handle(ctx,command);if(this.state.phase==='action'&&this.state.node?.resolved&&this.state.ap===0&&this.state.pendingEnchant===0)endVoyage(ctx);}
+   else{if(!this.state)throw new Error('请先开始游戏');const ctx=context(this.state,this.profile);this.handle(ctx,command);}
    this.normalize();return {ok:true,errors:[],view:this.getView(),events:[]};
   }catch(error){this.profile=before.profile;this.state=before.state;return {ok:false,errors:[error.message],view:this.getView(),events:[]};}
  }

@@ -7,7 +7,7 @@ function fixture(change){const g=game();const save=g.serialize();save.state.phas
 const card=(id,def,extra={})=>({instanceId:id,definitionId:def,quantity:1,enchant:[],stackLimit:1,level:1,...extra});
 const unit=(id,def,level=1)=>({instanceId:id,definitionId:def,level,progress:0,fuel:0});
 const ok=(g,cmd)=>{const r=g.execute(cmd);assert.equal(r.ok,true,r.errors.join(';'));return r.view;};
-test('零基地AP战后仍可领取等级附魔，领取后才自动结算',()=>{
+test('零基地AP战后仍可领取等级附魔，手动结束后才结算',()=>{
  const g=fixture(s=>{s.node={...structuredClone(NODES.boss),resolved:false};s.ap=0;s.level=14;});
  ok(g,{type:'EnterNode'});
  const save=g.serialize();save.state.battle.enemies[0].hp=1;
@@ -15,7 +15,19 @@ test('零基地AP战后仍可领取等级附魔，领取后才自动结算',()=>
  ok(battle,{type:'PlayCard',cardId:punch.instanceId});
  assert.equal(battle.getView().phase,'action');assert.equal(battle.getView().pendingEnchant,1);
  ok(battle,{type:'EnchantCard',cardId:punch.instanceId,enchant:'instant'});
+ assert.equal(battle.getView().phase,'action');
+ ok(battle,{type:'EndVoyage'});
  assert.equal(battle.getView().phase,'discard');assert.equal(battle.getView().profile.legacyCards[0].definitionId,'punch');
+});
+test('最后1AP耗尽后仍可连续喝水和吃食物，手动结束只结算一次',()=>{
+ const g=fixture(s=>{s.node.resolved=true;s.ap=1;s.current.hydration=40;s.current.hunger=40;s.hand.push(card('extra-wood','wood'),card('drink','water'),card('eat','food'));});
+ ok(g,{type:'ExpandRaft',x:2,z:0});
+ assert.equal(g.getView().ap,0);assert.equal(g.getView().phase,'action');
+ const before=g.serialize();assert.equal(g.execute({type:'Craft',recipeId:'filter'}).ok,false);assert.deepEqual(g.serialize(),before);
+ ok(g,{type:'PlayCard',cardId:'drink'});assert.equal(g.getView().current.hydration,65);assert.equal(g.getView().phase,'action');
+ ok(g,{type:'PlayCard',cardId:'eat'});assert.equal(g.getView().current.hunger,65);assert.equal(g.getView().ap,0);
+ ok(g,{type:'EndVoyage'});assert.equal(g.getView().phase,'discard');assert.equal(g.getView().current.hydration,35);assert.equal(g.getView().current.hunger,35);
+ const ended=g.serialize();assert.equal(g.execute({type:'EndVoyage'}).ok,false);assert.deepEqual(g.serialize(),ended);
 });
 test('安装需要设备手牌；二合一升级释放材料设备、拆除消耗拆除牌',()=>{
  const g=fixture(s=>{s.hand.push(card('filter1','filter'),card('filter2','filter'),card('dismantle','dismantle'));});
