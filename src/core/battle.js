@@ -26,7 +26,7 @@ export function finishBattle(ctx,won){
  s.node.resolved=true;s.completedNodes++;s.battle=null;s.battleAp=0;s.buffs=s.buffs.filter(b=>b.clock!=='battle');s.hand=s.hand.filter(c=>!c.battleOnly&&c.definitionId!=='pollution');s.phase='action';ctx.log(won?'战斗胜利，返回航行行动':'撤离战斗，没有奖励','战斗');
 }
 export function attack(ctx,card,targetId){
- const {s}=ctx;ctx.require(s.phase==='battle','战斗牌仅在战斗中使用');const enemy=s.battle.enemies.find(e=>e.instanceId===targetId)||(!targetId&&s.battle.enemies[0]);ctx.require(enemy&&enemy.hp>0,'选择存活敌人');const damage=Math.max(0,CARDS[card.definitionId].damage+(card.bonusDamage||0)+ctx.stat('damage'));enemy.hp=Math.max(0,enemy.hp-damage);ctx.log(CARDS[card.definitionId].name+' → '+enemy.name+'，伤害 '+damage,'战斗');
+ const {s}=ctx;ctx.require(s.phase==='battle','战斗牌仅在战斗中使用');const enemy=s.battle.enemies.find(e=>e.instanceId===targetId)||(!targetId&&s.battle.enemies[0]);ctx.require(enemy&&enemy.hp>0,'选择存活敌人');const baseDmg=CARDS[card.definitionId].damage+(card.bonusDamage||0)+ctx.stat('damage');const damage=CARDS[card.definitionId].damage>0?Math.max(1,baseDmg):Math.max(0,baseDmg);enemy.hp=Math.max(0,enemy.hp-damage);ctx.log(CARDS[card.definitionId].name+' → '+enemy.name+'，伤害 '+damage,'战斗');
  if(s.battle.enemies.every(e=>e.hp===0))finishBattle(ctx,true);
 }
 export function endBattleTurn(ctx){

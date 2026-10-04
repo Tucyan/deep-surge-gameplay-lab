@@ -1,1 +1,65 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Deep Surge · 玩法策划台</title><link rel="stylesheet" href="./style.css"></head><body><header><div><h1>玩法策划台</h1><p>用现有规则制作自己的航行内容</p></div><span id="status" role="status"></span></header><section class="toolbar" aria-label="配置操作"><button id="import">导入配置</button><button id="export">导出有效配置</button><button id="reset">恢复默认</button><button id="save">应用到本浏览器</button><button id="launch">应用并开始试玩</button></section><aside class="notice">这里的草稿和应用仅保存在本浏览器，不会修改公共网站。分享配置请导出文件。数值变化不会自动改写描述，请同步文案。自定义设备支持自动生产或战斗补给；燃灯和主动包扎仍只属于原生灯、包扎包。</aside><section id="errors" tabindex="-1" aria-label="配置问题" aria-live="polite"></section><main><nav id="tables" aria-label="内容分类"></nav><section class="records"><h2 id="table-title"></h2><div id="record-actions"><button id="create">新建</button><button id="duplicate">复制</button><button id="delete">删除</button></div><div id="records" aria-label="条目列表"></div></section><section id="form" aria-label="内容字段"></section></main><script type="module" src="./src/editor/app.js"></script></body></html>
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>深涌 · 玩法策划工作台</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <header>
+    <div class="header-brand">
+      <div class="brand-title">
+        <span class="brand-logo">🌊</span>
+        <h1>深涌 · 玩法策划工作台</h1>
+        <span class="badge">配置编辑器</span>
+      </div>
+      <p>规则与内容数据可视化编辑 · 即时校验与试玩联动</p>
+    </div>
+    <div class="header-status-box">
+      <span id="status" role="status" aria-live="polite">● 草稿已自动保存</span>
+    </div>
+  </header>
+
+  <section class="toolbar" aria-label="配置操作">
+    <div class="toolbar-primary">
+      <button id="launch" class="btn-launch" title="应用当前配置并直接进入游戏测试">🚀 应用并开始试玩</button>
+      <button id="save" class="btn-save" title="保存生效到当前浏览器的游戏试玩中">💾 保存到本浏览器</button>
+    </div>
+    <div class="toolbar-secondary">
+      <button id="import" title="导入外部导出的完整配置文件">📥 导入配置</button>
+      <button id="export" title="导出通过校验的合法配置文件供分发">📤 导出有效配置</button>
+      <button id="reset" class="btn-quiet" title="放弃草稿并重置为当前默认配置">🔄 恢复默认</button>
+    </div>
+  </section>
+
+  <aside class="notice">
+    <strong>💡 策划提示：</strong> 草稿和应用仅保存在本浏览器中，不会影响公共发布源。分享配置请导出 JSON 文件。数值调整后请同步修改描述文案。
+  </aside>
+
+  <section id="errors" tabindex="-1" aria-label="配置问题" aria-live="polite"></section>
+
+  <main>
+    <nav id="tables" aria-label="内容分类"></nav>
+
+    <section class="records-column">
+      <div class="records-header">
+        <h2 id="table-title">条目清单</h2>
+        <div id="record-actions">
+          <button id="create" class="action-btn" title="在当前分类新建条目">➕ 新建</button>
+          <button id="duplicate" class="action-btn" title="复制选中的条目并生成副本">📋 复制</button>
+          <button id="delete" class="action-btn btn-danger" title="删除选中的条目">🗑️ 删除</button>
+        </div>
+      </div>
+      <div class="search-box">
+        <input type="search" id="record-search" placeholder="🔍 快速搜索条目..." aria-label="搜索当前条目">
+      </div>
+      <div id="records" aria-label="条目列表"></div>
+    </section>
+
+    <section id="form" class="form-column" aria-label="内容字段"></section>
+  </main>
+
+  <script type="module" src="./src/editor/app.js"></script>
+</body>
+</html>

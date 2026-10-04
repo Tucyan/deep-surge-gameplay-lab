@@ -17,7 +17,7 @@ export const CARDS = {
  lamp:{name:'灯',kind:'equipment',cost:1,description:'安装后投入木头/尸体，燃烧时每节点恢复精神15。'},
  filter:{name:'滤水器',kind:'equipment',cost:1,description:'Ⅰ级每两节点产淡水；Ⅱ级起每节点产淡水。'},
  planter:{name:'土盆',kind:'equipment',cost:1,description:'Ⅰ级每两节点产植物；Ⅱ级起每节点产植物。'},
- medkit:{name:'包扎包',kind:'equipment',cost:1,description:'安装后花1 AP恢复生命6，高等级治疗更多。'},
+ medkit:{name:'包扎包',kind:'equipment',cost:1,description:'安装后花1 AP恢复生命4，高等级治疗更多。'},
  crossbow:{name:'弓弩',kind:'equipment',cost:1,description:'每战斗回合产生射箭；Ⅱ/Ⅲ级每2/3张箭占一格。'},
  spearRack:{name:'矛架',kind:'equipment',cost:1,description:'每战斗回合产生矛击。'},
  dismantle:{name:'拆除',kind:'action',targetOperation:'dismantle',cost:1,description:'移除指定设备，回收一份配方材料。'},

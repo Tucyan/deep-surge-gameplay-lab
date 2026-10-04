@@ -77,7 +77,18 @@ function home() {
   return `<main class="screen home">${header(true)}<div class="home-body"><section class="home-intro"><span class="gold">一叶筏 · 一片未知的海</span><h1>深涌</h1><p>涌泉带来物资，航线决定遭遇。照看饥渴与理智，搭建设备，带着有限的行动点走向下一场风浪。</p><p>这是可独立游玩的规则实验。数值仍在试测，选择出身并输入种子，开启一段可重现的航行。</p><div class="row"><span class="badge">筏格与设备</span><span class="badge">独立战斗</span><span class="badge">局外成长</span></div></section><section class="panel home-menu"><div class="panel-head"><h2>准备启航</h2><span class="gold">涌潮点 ${view.profile?.points || 0}</span></div><div class="panel-body"><label>出身<select id="origin">${defs(ORIGINS).map(o=>`<option value="${esc(o.id)}" ${homeOrigin===o.id?'selected':''}>${esc(o.name)}</option>`).join('')}</select><small id="origin-description">${esc(ORIGINS[homeOrigin]?.description || '')}</small></label><label>航行种子<div class="row"><input class="grow" id="seed" inputmode="numeric" type="number" min="0" max="4294967295" value="${esc(homeSeed)}">${button('随机','randomSeed',false,'quiet')}</div><small>相同种子与相同选择会带来相同的遭遇。</small></label><div class="main-buttons">${button('新的航行','newGame',false,'primary')}${button(active?'继续航行':'继续', 'continue',!active)}</div>${active?'<small>已保存一段进行中的航行。开始新的航行会替换它。</small>':saveAvailable?'<small>上一次航行已结束，可以开启新的旅途。</small>':'<small>暂无进行中的航行。</small>'}<div class="row home-bottom">${button('海怪商店','meta')}${button('科技树','tech')}${button('图鉴','catalogue')}</div><div class="row muted"><small>已启航 ${view.profile?.runs || 0} 次</small><small>已完成节点 ${Array.isArray(view.profile?.completedNodes)?view.profile.completedNodes.length:view.profile?.completedNodes || 0}</small></div></div></section></div></main>`;
 }
 function meters() {
-  return `<section class="status" aria-label="生存状态">${[['hp','生命'],['hunger','饱食'],['hydration','水分'],['sanity','理智']].map(([k,label])=>{const val=view.current?.[k] ?? 0,max=view.stats?.[`${k}Max`] || 100;return `<div class="meter ${k}"><div class="meter-title"><span>${label}</span><span>${val} / ${max}</span></div><div class="meter-track"><div class="meter-fill" style="width:${Math.max(0,Math.min(100,val/max*100))}%"></div></div></div>`;}).join('')}</section>`;
+  const items = [
+    ['hp', '❤️ 生命'],
+    ['hunger', '🍖 饱食'],
+    ['hydration', '💧 水分'],
+    ['sanity', '🧠 理智']
+  ];
+  return `<section class="status" aria-label="生存状态">${items.map(([k, label]) => {
+    const val = view.current?.[k] ?? 0, max = view.stats?.[`${k}Max`] || 100;
+    const pct = Math.max(0, Math.min(100, Math.round(val / max * 100)));
+    const isDanger = (k === 'hp' && pct <= 35) || (k !== 'hp' && val <= 25);
+    return `<div class="meter ${k} ${isDanger ? 'danger-alert' : ''}" title="${label}：${val}/${max} (${pct}%)"><div class="meter-title"><span class="meter-label">${label}</span><span class="meter-val">${val} <small>/ ${max}</small></span></div><div class="meter-track"><div class="meter-fill" style="width:${pct}%"></div></div>${isDanger ? `<span class="meter-warn-tag">${k==='hp'?'濒危':k==='hunger'?'饥饿':k==='hydration'?'脱水':'迷失'}</span>` : ''}</div>`;
+  }).join('')}</section>`;
 }
 function log() {
   return `<section class="panel log-panel"><div class="panel-head"><h2>航行日志</h2><small>最新在上</small></div><div class="panel-body log-body" id="log-body">${newestVoyageLogs(view.log).map((v,i)=>`<details data-log-key="v${v.voyage}" ${i===0?'open':''}><summary>第 ${v.voyage} 次航行</summary>${v.groups.map((g,j)=>`<details data-log-key="v${v.voyage}-g${j}" open><summary>${esc(g.name)}</summary>${g.entries.map(e=>`<div class="log-entry">${esc(typeof e==='string'?e:e.text || e.message || JSON.stringify(e))}</div>`).join('')}</details>`).join('')}</details>`).join('') || '<p class="empty">海面尚未留下记录。</p>'}</div></section>`;
@@ -85,10 +96,10 @@ function log() {
 function stage() {
   let content='', footer='';
   if (view.phase==='navigation') {
-    content=`<p class="muted">选择下一处停靠点，出发后领取涌泉补给并进入准备。</p><div class="node-grid">${(view.candidates || []).map(n=>`<button class="node-card candidate ${selectedCandidate===n.id?'selected':''}" data-action="candidate" ${tagged(n.id)}><span class="node-name">${esc(n.name)}</span><span class="badge">${esc(nodeKind(n.kind))}</span><span class="card-description">${esc(n.description)}</span></button>`).join('')}</div>`;
+    content=`<p class="muted">选择下一处停靠点，出发后领取涌泉补给并进入准备。</p><div class="node-grid">${(view.candidates || []).map(n=>`<button class="node-card candidate ${selectedCandidate===n.id?'selected':''}" data-action="candidate" ${tagged(n.id)}><span class="node-name">${esc(n.name)}</span><span class="badge ${n.kind==='battle'||n.kind==='boss'?'red':n.kind==='rest'?'gold':''}">${esc(nodeKind(n.kind))}</span><span class="card-description">${esc(n.description)}</span></button>`).join('')}</div>`;
     footer=button('启航','submitVoyage',!selectedCandidate,'primary');
   } else if (isBattle()) {
-    content=`<div class="row between"><h3>${esc(view.node?.name || (view.battle?.boss?'深海首领':'海上遭遇'))}</h3><span class="badge">${view.battle?.ruin?'遗迹战斗':'战斗'} · ${view.battle?.enemies?.length || 0} 个目标</span></div><p class="muted">先选手牌，再选敌人或筏格。敌方意图在回合结束时生效。</p><div class="enemy-list">${(view.battle?.enemies || []).map((e,i)=>`<button class="enemy-card ${selectedTarget===e.instanceId?'selected':''}" data-action="target" ${tagged(e.instanceId)} ${e.hp<=0?'disabled':''}><span class="row between"><strong>${esc(e.name)}</strong><small>目标 ${i+1}</small></span><span>生命 ${e.hp} / ${e.maxHp}</span><span class="enemy-intent">意图：${esc(intent(e.intent))}</span>${e.damage!=null?`<small>伤害 ${esc(e.damage)}</small>`:''}</button>`).join('')}</div>${view.phase==='battleDiscard'?discardPrompt():''}`;
+    content=`<div class="row between"><h3>${esc(view.node?.name || (view.battle?.boss?'深海首领':'海上遭遇'))}</h3><span class="badge red">${view.battle?.ruin?'遗迹战斗':'战斗'} · ${view.battle?.enemies?.length || 0} 个目标</span></div><p class="muted">先选手牌，再选敌人或筏格。敌方意图在回合结束时生效。</p><div class="enemy-list">${(view.battle?.enemies || []).map((e,i)=>{const pct=Math.max(0,Math.min(100,Math.round((e.hp/e.maxHp)*100)));return `<button class="enemy-card ${selectedTarget===e.instanceId?'selected':''}" data-action="target" ${tagged(e.instanceId)} ${e.hp<=0?'disabled':''}><span class="row between"><strong>${esc(e.name)}</strong><small>目标 ${i+1}</small></span><div class="row between"><span>生命 ${e.hp} / ${e.maxHp}</span><small>${pct}%</small></div><div class="enemy-hp-track"><div class="enemy-hp-fill" style="width:${pct}%"></div></div><span class="enemy-intent">意图：${esc(intent(e.intent))}</span>${e.damage!=null?`<small class="muted">单次伤害 ${esc(e.damage)}</small>`:''}</button>`;}).join('')}</div>${view.phase==='battleDiscard'?discardPrompt():''}`;
     footer=button('结束战斗回合','endBattle',view.phase!=='battle','primary')+button('撤退','retreat',view.phase!=='battle','danger');
   } else if (view.phase==='discard') {
     content=discardPrompt(); footer=discardFooter();
@@ -105,17 +116,25 @@ function stage() {
   return `<section class="panel stage-panel"><div class="panel-head"><h2>${isBattle()?'战场':view.phase==='navigation'?'航线':view.phase==='discard'?'整理行囊':'当前节点'}</h2>${canAct()?button('合成','craft',false,'quiet'):''}</div><div class="panel-body stage-body" id="stage-body">${content}</div><div class="stage-footer">${footer}</div></section>`;
 }
 function intent(value) { return typeof value==='string'?value:value?.description || value?.name || (value?JSON.stringify(value):'待定'); }
-function nodeKind(k) {return {combat:'战斗',battle:'战斗',event:'事件',rest:'休整',exchange:'交换',environment:'环境',camp:'营地',ruin:'遗迹',shop:'交易',spring:'涌泉',boss:'首领',supply:'补给',treasure:'宝物'}[k] || k || '探索';}
+function nodeKind(k) {return {combat:'⚔️ 战斗',battle:'⚔️ 战斗',event:'📜 事件',rest:'⛺ 休整',exchange:'🔄 交换',environment:'🌊 环境',camp:'⛺ 营地',ruin:'🏛️ 遗迹',shop:'🐙 交易',spring:'💧 涌泉',boss:'👁️ 首领',supply:'📦 补给',treasure:'💎 宝物'}[k] || k || '探索';}
 function discardPrompt() {
   return `<div class="notice">${view.phase==='battleDiscard'?'战斗回合整理':'航行结束整理'}：容量 ${view.capacity ?? view.hand?.length ?? 0} / ${view.stats?.handLimit || 0}。${view.excess>0?`超出 ${view.excess}，请选中手牌并丢弃。`:'已满足容量限制，可以确认继续。'}</div><p class="muted">点击手牌可多选；先执行弃牌，再确认整理。负面牌若无法丢弃，会给出原因。</p>`;
 }
 function discardFooter(){return button(`丢弃选中 (${discarded.size})`,'discard',!discarded.size)+button(view.phase==='battleDiscard'?'继续战斗':'确认整理','finishDiscard',!canConfirmDiscard(view),'primary');}
 function hand() {
   const c=card();
-  const ap=isBattle()?view.battleAp:view.ap;
-  return `<section class="panel hand-panel"><div class="panel-head"><h2>手牌 <small>${view.capacity ?? view.hand?.length ?? 0} / ${view.stats?.handLimit || 0}</small></h2>${button('查看详情','inspect',!c,'quiet')}</div><div class="panel-body" id="hand-body"><div class="hand-grid">${(view.hand || []).map(c=>`<button class="hand-card ${c.kind==='negative'?'negative':''} ${isDiscard()?discarded.has(c.instanceId)?'selected':'':selectedCard===c.instanceId?'selected':''}" data-action="card" ${tagged(c.instanceId)} aria-pressed="${isDiscard()?discarded.has(c.instanceId):selectedCard===c.instanceId}"><span class="card-name">${esc(c.name)}</span><span class="card-meta">${esc(cardKind(c.kind))} · ${c.cost ?? 0} AP ${c.quantity>1?`· ×${c.quantity}`:''}</span>${c.enchant?.length?`<span class="good card-meta">${c.enchant.map(enchantName).join(' · ')}</span>`:''}</button>`).join('')}</div>${!view.hand?.length?'<p class="empty">行囊空了，新的物资还在海上。</p>':''}</div><div class="selection-detail">${isDiscard()?`<span class="muted">已选 ${discarded.size} 张手牌</span>`:c?`<strong>${esc(c.name)}</strong> <span class="muted">${esc(c.description)}</span><div class="row">${button(c.kind==='equipment'?'安装':c.kind==='negative'?'清除':c.definitionId==='dismantle'?'拆除设备':'使用','play',!canPlaySelected(),'primary')}${button('灯笼添燃料','fuel',!canAct() || !equipment() || !CARDS[c.definitionId]?.fuel)}${view.pendingEnchant?button('附魔','enchant',!canAct() || !enchantable()):''}<small>${selectedTarget?`目标：${esc(targetLabel())}`:'选择敌人、筏格或设备作为目标'}</small></div>`:'<span class="muted">点击手牌查看说明与可用行动。</span>'}</div></section>`;
+  const currentAp=isBattle()?view.battleAp:view.ap;
+  let guideHint='';
+  if(c){
+    if(c.kind==='equipment')guideHint='<span class="guide-hint">💡 放置指引：在右侧木筏上点击任意【完好空格】以安装</span>';
+    else if(c.definitionId==='repair')guideHint='<span class="guide-hint">💡 修补指引：在右侧木筏上点击【破损格】进行修复</span>';
+    else if(c.definitionId==='dismantle')guideHint='<span class="guide-hint">💡 拆除指引：在右侧木筏上点击【已安装设备】进行拆除回收</span>';
+    else if(c.kind==='combat')guideHint='<span class="guide-hint">💡 战斗指引：在上方战场点击存活敌人锁定目标</span>';
+    else if(CARDS[c.definitionId]?.fuel)guideHint='<span class="guide-hint">💡 投料指引：点击右侧木筏上的【灯】后点击添燃料</span>';
+  }
+  return `<section class="panel hand-panel"><div class="panel-head"><h2>手牌 <small>${view.capacity ?? view.hand?.length ?? 0} / ${view.stats?.handLimit || 0}</small></h2>${button('查看详情','inspect',!c,'quiet')}</div><div class="panel-body" id="hand-body"><div class="hand-grid">${(view.hand || []).map(c=>{const affordable=(c.cost??0)<=currentAp;return `<button class="hand-card kind-${c.kind} ${c.kind==='negative'?'negative':''} ${!affordable&&c.cost>0?'unaffordable':''} ${isDiscard()?discarded.has(c.instanceId)?'selected':'':selectedCard===c.instanceId?'selected':''}" data-action="card" ${tagged(c.instanceId)} aria-pressed="${isDiscard()?discarded.has(c.instanceId):selectedCard===c.instanceId}"><span class="card-name">${esc(c.name)}</span><span class="card-meta">${esc(cardKind(c.kind))} <span class="card-ap-tag">${c.cost ?? 0} AP</span> ${c.quantity>1?`×${c.quantity}`:''}</span>${c.enchant?.length?`<span class="good card-meta">${c.enchant.map(enchantName).join(' · ')}</span>`:''}</button>`;}).join('')}</div>${!view.hand?.length?'<p class="empty">行囊空了，新的物资还在海上。</p>':''}</div><div class="selection-detail">${isDiscard()?`<span class="muted">已选 ${discarded.size} 张手牌</span>`:c?`<strong>${esc(c.name)}</strong> <span class="muted">${esc(c.description)}</span>${guideHint}<div class="row" style="margin-top:6px">${button(c.kind==='equipment'?'⚙️ 安装':c.kind==='negative'?'☣️ 清除':c.definitionId==='dismantle'?'🔨 拆除设备':'✨ 使用','play',!canPlaySelected(),'primary')}${button('🔥 灯笼添燃料','fuel',!canAct() || !equipment() || !CARDS[c.definitionId]?.fuel)}${view.pendingEnchant?button('附魔','enchant',!canAct() || !enchantable()):''}<small>${selectedTarget?`已选目标：${esc(targetLabel())}`:'尚未指定目标'}</small></div>`:'<span class="muted">点击手牌查看说明与操作。双击可用手牌可快速打出。</span>'}</div></section>`;
 }
-function cardKind(k){return {resource:'材料',survival:'生存',combat:'战术',equipment:'设备',action:'行动',negative:'负面',currency:'货币'}[k] || k || '物资';}
+function cardKind(k){return {resource:'🪵 材料',survival:'💧 生存',combat:'⚔️ 战术',equipment:'⚙️ 设备',action:'🔨 行动',negative:'☣️ 负面',currency:'🪙 货币'}[k] || k || '物资';}
 function enchantName(k){return {return:'回牌',instant:'瞬发'}[k] || k;}
 function targetLabel(){return (view.battle?.enemies || []).find(e=>e.instanceId===selectedTarget)?.name || equipment()?.name || cell()?.id || selectedTarget;}
 function raft() {
@@ -123,10 +142,24 @@ function raft() {
   const xs=cells.map(c=>c.x), zs=cells.map(c=>c.z);
   const minX=xs.length?Math.min(...xs):0,maxX=xs.length?Math.max(...xs):0,minZ=zs.length?Math.min(...zs):0,maxZ=zs.length?Math.max(...zs):0;
   const width=maxX-minX+1;
+  const curCard=card();
+  const isInstall=curCard?.kind==='equipment', isRepair=curCard?.definitionId==='repair';
   let tiles='';
-  for(let z=minZ;z<=maxZ;z++) for(let x=minX;x<=maxX;x++){const c=cells.find(c=>c.x===x&&c.z===z);tiles+=c?`<button class="raft-cell ${c.state} ${selectedTarget===c.id || selectedTarget===c.equipment?.instanceId?'selected':''}" data-action="cell" ${tagged(c.id)} aria-label="${esc(c.id)} ${esc(c.equipment?.name || '空筏格')} ${c.state==='damaged'?'破损':c.state==='detached'?'脱落':'完好'}"><span>${c.state==='detached'?'脱落':c.state==='damaged'?'破损':c.equipment?'设备':'空格'}</span>${c.equipment?`<span class="equip">${esc(c.equipment.name)}</span><small>Lv.${c.equipment.level || 1}</small>`:`<small>${esc(c.id)}</small>`}</button>`:'<span class="raft-cell space"></span>';}
+  for(let z=minZ;z<=maxZ;z++) for(let x=minX;x<=maxX;x++){
+    const c=cells.find(c=>c.x===x&&c.z===z);
+    if(!c){tiles+='<span class="raft-cell space"></span>';continue;}
+    const isTargetInstall=isInstall && c.state==='intact' && !c.equipment;
+    const isTargetRepair=isRepair && c.state==='damaged';
+    const targetClass=isTargetInstall?'target-install':isTargetRepair?'target-repair':'';
+    let statusPill='';
+    if(c.equipment?.definitionId==='lamp')statusPill=`<span class="cell-status-tag">🔥 燃料 ${c.equipment.fuel ?? 0}</span>`;
+    else if(c.equipment?.output)statusPill=`<span class="cell-status-tag">⏳ 进度 ${c.equipment.progress ?? 0}</span>`;
+    else if(c.equipment?.healing)statusPill=`<span class="cell-status-tag">🩹 可治疗</span>`;
+    else if(c.equipment?.battleOutput)statusPill=`<span class="cell-status-tag">🏹 产箭</span>`;
+    tiles+=`<button class="raft-cell ${c.state} ${targetClass} ${selectedTarget===c.id || selectedTarget===c.equipment?.instanceId?'selected':''}" data-action="cell" ${tagged(c.id)} aria-label="${esc(c.id)} ${esc(c.equipment?.name || '空筏格')} ${c.state==='damaged'?'破损':c.state==='detached'?'脱落':'完好'}"><span>${c.state==='detached'?'脱落':c.state==='damaged'?'破损':c.equipment?'设备':'空格'}</span>${c.equipment?`<span class="equip">${esc(c.equipment.name)}</span><small>Lv.${c.equipment.level || 1}</small>${statusPill}`:`<small>${esc(c.id)}</small>`}</button>`;
+  }
   const selected=cell(), unit=equipment();
-  return `<section class="panel raft-panel"><div class="panel-head"><h2>木筏</h2><small>${cells.filter(c=>c.state!=='detached').length} 格${isBattle()?' · 战斗中只读':''}</small></div><div class="panel-body" id="raft-body"><div class="raft-board" style="grid-template-columns:repeat(${width},minmax(0,1fr))">${tiles}</div><div class="raft-legend">绿色描边：已选 · 红褐：破损 · 虚线：脱落</div>${selected?`<div class="selection-detail"><strong>${esc(selected.id)} · ${selected.state==='intact'?'完好':selected.state==='damaged'?'破损':'脱落'}</strong>${unit?`<p>${esc(unit.name)} · Lv.${unit.level || 1} · 燃料 ${unit.fuel ?? 0} · 进度 ${unit.progress ?? 0}</p>`:'<p class="muted">此格没有设备</p>'}</div>`:''}</div><div class="stage-footer">${button('扩建','expand',!canAct() || !view.expansionOptions?.length)}${button('修补','repair',!canAct() || !selected || selected.state!=='damaged')}${button('设备升级','upgrade',!canAct() || !unit)}${button('启用 / 治疗','activate',!canAct() || !unit)}${button('合成','craft',!canAct())}</div></section>`;
+  return `<section class="panel raft-panel"><div class="panel-head"><h2>木筏</h2><small>${cells.filter(c=>c.state!=='detached').length} 格${isBattle()?' · 战斗中只读':''}</small></div><div class="panel-body" id="raft-body"><div class="raft-board" style="grid-template-columns:repeat(${width},minmax(0,1fr))">${tiles}</div><div class="raft-legend">绿色描边：已选 · 红褐：破损 · 虚线：脱落</div>${selected?`<div class="selection-detail"><strong>${esc(selected.id)} · ${selected.state==='intact'?'完好':selected.state==='damaged'?'破损':'脱落'}</strong>${unit?`<p>${esc(unit.name)} · Lv.${unit.level || 1} · 燃料 ${unit.fuel ?? 0} · 生产进度 ${unit.progress ?? 0}</p>`:'<p class="muted">此格没有设备</p>'}</div>`:''}</div><div class="stage-footer">${button('➕ 扩建','expand',!canAct() || !view.expansionOptions?.length)}${button('🔨 修补','repair',!canAct() || !selected || selected.state!=='damaged')}${button('⭐ 升级','upgrade',!canAct() || !unit)}${button('🩹 治疗','activate',!canAct() || !unit)}${button('📦 合成','craft',!canAct())}</div></section>`;
 }
 function buffs(){return `<section class="panel buff-panel"><div class="panel-head"><h2>状态与藏品</h2><small>${view.buffs?.length || 0} 个状态</small></div><div class="panel-body"><div class="buff-list">${(view.buffs || []).map(b=>`<span class="buff ${b.polarity==='negative'?'negative':''}" title="${esc(b.description)}">${esc(b.name)}${b.remaining!=null?` · ${b.remaining} ${b.clock==='battle'?'回合':'轮'}`:''}</span>`).join('')}${(view.relics || []).map(r=>`<span class="buff gold" title="${esc(r.description)}">◆ ${esc(r.name)}</span>`).join('') || ''}</div>${!view.buffs?.length && !view.relics?.length?'<small class="muted">暂时没有状态或藏品</small>':''}</div></section>`;}
 function game(){return `<main class="screen">${header()}${meters()}<div class="game-body">${log()}<div class="middle-column">${stage()}${hand()}</div><aside class="right-column">${raft()}${buffs()}</aside></div></main>`;}
@@ -143,12 +176,19 @@ function render() {
 }
 function openModal(type,data={}) {modal={type,...data};renderModal();}
 function closeModal(){modal=null;renderModal();}
-function modalFrame(title,content,small=false){return `<div class="overlay-backdrop" data-action="backdrop"><section class="modal ${small?'small':''}" role="dialog" aria-modal="true" aria-label="${esc(title)}"><div class="panel-head"><h2>${esc(title)}</h2>${button('×','close',false,'modal-close','aria-label="关闭"')}</div><div class="modal-content">${content}</div></section></div>`;}
+function modalFrame(title,content,extraCls=''){const cls=typeof extraCls==='boolean'?(extraCls?'small':''):extraCls;return `<div class="overlay-backdrop" data-action="backdrop"><section class="modal ${cls}" role="dialog" aria-modal="true" aria-label="${esc(title)}"><div class="panel-head"><h2>${esc(title)}</h2>${button('×','close',false,'modal-close','aria-label="关闭"')}</div><div class="modal-content">${content}</div></section></div>`;}
 function renderModal(){
   let html='';
   $('#app').inert=!!modal;
   if(!modal){$('#overlay-root').innerHTML='';return;}
-  if(modal.type==='craft')html=modalFrame('工具合成',`<p class="muted">合成与使用分别消耗行动点。工具会保留，材料会消耗。</p>${defs(RECIPES).map(r=>{const a=view.recipeAvailability?.[r.id];return `<div class="recipe"><div><strong>${esc(r.name)}</strong><p class="ingredients">${entries(r.ingredients).map(([id,q])=>`${esc(name(CARDS,id))} ×${q}`).join(' + ')} · ${r.cost ?? 1} AP</p><small>${esc(a?.reason || (a?.canCraft?'材料齐全':'条件未满足'))}</small></div>${button('合成','craftRecipe',!canAct() || !a?.canCraft,'',tagged(r.id))}</div>`;}).join('')}`);
+  if(modal.type==='craft'){
+    const RECIPE_ICONS={lamp:'🔥',filter:'💧',planter:'🌿',medkit:'🩹',crossbow:'🏹',spearRack:'🗡️',dismantle:'🔨',repair:'🧰'};
+    const MAT_ICONS={wood:'🪵',iron:'🔩',plastic:'🧴',cloth:'🧵',rope:'🪢'};
+    const matCount=defId=>(view.hand||[]).filter(c=>c.definitionId===defId).reduce((s,c)=>s+(c.quantity||1),0);
+    const invHtml=`<div class="craft-inv-bar"><div class="craft-inv-title"><span>🎒 材料库存</span><span class="craft-ap-badge ${view.ap>0?'good':'warn'}">⚡ 当前 AP: ${view.ap??0}</span></div><div class="craft-inv-mats">${['wood','iron','plastic','cloth','rope'].map(m=>{const count=matCount(m);return `<span class="inv-mat ${count>0?'has':'zero'}" title="${esc(CARDS[m]?.name)}">${MAT_ICONS[m]} ${esc(CARDS[m]?.name)} <strong>${count}</strong></span>`;}).join('')}</div></div>`;
+    const gridHtml=`<div class="craft-grid">${defs(RECIPES).map(r=>{const a=view.recipeAvailability?.[r.id];const cardDef=CARDS[r.output]||{};const icon=RECIPE_ICONS[r.id]||'⚙️';const canCraft=canAct()&&a?.canCraft;const isLocked=r.id==='spearRack'&&!view.profile?.tech?.includes('spear');const ings=entries(r.ingredients).map(([id,needed])=>{const have=matCount(id);const ok=have>=needed;return `<span class="craft-ing ${ok?'ok':'miss'}">${MAT_ICONS[id]||''} ${esc(name(CARDS,id))} ${have}/${needed}</span>`;}).join('');return `<div class="craft-card ${canCraft?'craftable':''} ${isLocked?'locked':''}"><div class="craft-card-head"><div class="craft-card-title"><span class="craft-card-icon">${icon}</span><strong>${esc(cardDef.name||r.name)}</strong></div><span class="craft-cost-badge">${r.cost??1} AP</span></div><p class="craft-card-desc">${esc(cardDef.description||'合成可用物资')}</p><div class="craft-card-ings">${ings}</div><div class="craft-card-foot">${button(canCraft?'🔨 合成':a?.reason||'不可合成','craftRecipe',!canCraft,`btn-craft ${canCraft?'primary':''}`,tagged(r.id))}</div></div>`;}).join('')}</div>`;
+    html=modalFrame('工具台 · 配方合成',`${invHtml}${gridHtml}`,'craft-modal');
+  }
   if(modal.type==='inspect'){const c=card();html=modalFrame(c?.name || '手牌详情',c?`<p class="help-copy">${esc(c.description)}</p><p class="muted">${cardKind(c.kind)} · ${c.cost || 0} AP · 数量 ${c.quantity || 1}</p>${c.enchant?.length?`<p class="good">附魔：${c.enchant.map(enchantName).join('、')}</p>`:''}`:'<p>请先选择手牌。</p>',true);}
   if(modal.type==='meta')html=modalFrame('海怪商店',`<p class="gold">涌潮点 ${view.profile?.points || 0}</p><div class="catalogue">${defs(META_SHOP).map(m=>{const n=view.profile?.purchases?.[m.id] || 0;return `<div class="catalogue-item"><strong>${esc(m.name)}</strong><p class="card-description">${esc(m.description)}</p><small>已购 ${n} / ${m.maxPurchases ?? '不限'}</small>${button(`${m.price} 点 · 购买`,'buyMeta',view.phase!=='home' || (view.profile?.points || 0)<m.price || n>=(m.maxPurchases ?? Infinity),'',tagged(m.id))}</div>`;}).join('')}</div>${view.phase!=='home'?'<p class="muted">结束当前航行后可购买局外成长。</p>':''}`);
   if(modal.type==='tech')html=modalFrame('科技树',`<p class="gold">涌潮点 ${view.profile?.points || 0}</p><div class="catalogue">${defs(TECH).map(t=>{const got=view.profile?.tech?.includes(t.id);const prereq=(t.requires || []).every(id=>view.profile?.tech?.includes(id));return `<div class="catalogue-item ${got?'':'locked'}"><strong>${esc(t.name)}</strong><p class="card-description">${esc(t.description)}</p><small>前置：${t.requires?.length?t.requires.map(id=>esc(name(TECH,id))).join('、'):'无'}</small>${button(got?'已解锁':`${t.price} 点 · 解锁`,'unlockTech',view.phase!=='home' || got || !prereq || (view.profile?.points || 0)<t.price,'',tagged(t.id))}</div>`;}).join('')}</div>`);
@@ -239,6 +279,71 @@ document.addEventListener('click',e=>{
     const anchor=document.createElement('a');anchor.href=url;anchor.download='深涌-玩法配置.json';anchor.click();setTimeout(()=>URL.revokeObjectURL(url),1000);return;
   }
   if(a==='resetContent'){confirmAction('恢复发布配置','重新使用当前发布配置，并读取它对应的进度？',()=>{try{clearAppliedConfig();location.reload();}catch(error){toast(error.message,true);}});return;}
+});
+document.addEventListener('dblclick',e=>{
+  const cardEl=e.target.closest('[data-action="card"]');
+  if(cardEl && !cardEl.disabled && !isDiscard()){
+    const id=cardEl.dataset.id;
+    selectedCard=id;
+    const c=card();
+    if(c && canPlaySelected()){
+      if(c.kind==='combat'){
+        const aliveEnemies=(view.battle?.enemies||[]).filter(en=>en.hp>0);
+        let targetId=selectedTarget;
+        if(!targetId && aliveEnemies.length===1) targetId=aliveEnemies[0].instanceId;
+        if(targetId){
+          run({type:'PlayCard',cardId:id,targetId});
+          return;
+        }
+      }else if(c.kind==='survival' || (c.kind==='action' && !c.targetOperation)){
+        run({type:'PlayCard',cardId:id});
+        return;
+      }else if(c.kind==='equipment'){
+        const emptyCells=(view.cells||[]).filter(cl=>cl.state==='intact' && !cl.equipment);
+        let targetId=selectedTarget;
+        if(!targetId && emptyCells.length===1) targetId=emptyCells[0].id;
+        if(targetId){
+          run({type:'PlayCard',cardId:id,targetId});
+          return;
+        }
+      }
+    }
+    render();
+    return;
+  }
+  const enemyEl=e.target.closest('[data-action="target"]');
+  if(enemyEl && !enemyEl.disabled && isBattle()){
+    const enemyId=enemyEl.dataset.id;
+    selectedTarget=enemyId;
+    const c=card();
+    if(c && c.kind==='combat' && canPlaySelected()){
+      run({type:'PlayCard',cardId:selectedCard,targetId:enemyId});
+      return;
+    }
+    render();
+    return;
+  }
+  const cellEl=e.target.closest('[data-action="cell"]');
+  if(cellEl && !cellEl.disabled && canAct()){
+    const cellId=cellEl.dataset.id;
+    selectedTarget=cellId;
+    const c=card();
+    if(c && c.kind==='equipment'){
+      const targetCell=(view.cells||[]).find(cl=>cl.id===cellId);
+      if(targetCell && targetCell.state==='intact' && !targetCell.equipment && canPlaySelected()){
+        run({type:'PlayCard',cardId:selectedCard,targetId:cellId});
+        return;
+      }
+    }else if(c && c.definitionId==='repair'){
+      const targetCell=(view.cells||[]).find(cl=>cl.id===cellId);
+      if(targetCell && targetCell.state==='damaged' && canPlaySelected()){
+        run({type:'PlayCard',cardId:selectedCard,targetId:cellId});
+        return;
+      }
+    }
+    render();
+    return;
+  }
 });
 document.addEventListener('change',async e=>{
   if(e.target.id==='content-file'){

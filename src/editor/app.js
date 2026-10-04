@@ -3,9 +3,15 @@ import {SCHEMAS,EFFECT_SCHEMAS,validateConfig,parseConfig} from '../config/valid
 import {CARD_FIELDS,normalizeCard,setTargetOperation,prepareRecord,equipmentCard,copyEquipmentById} from './records.js';
 const $=id=>document.getElementById(id),clone=x=>structuredClone(x);
 const tables={CARDS:'卡牌',NODES:'航行节点',MONSTERS:'怪物',EQUIPMENT:'设备',RECIPES:'合成配方',ORIGINS:'出身',BUFFS:'增减益',RELICS:'藏品',SHOP:'局内商店',DIARIES:'日记',ENDINGS:'结局',META_SHOP:'局外商店',TECH:'科技',CONFIG:'基础数值',VOYAGE_EFFECTS:'航行消耗',SURVIVAL:'生存惩罚',SPRING_POOL:'涌泉池',VOYAGE_STEPS:'结算顺序'};
+const NAV_GROUPS=[
+  {title:'🗃️ 卡牌与合成',keys:['CARDS','EQUIPMENT','RECIPES','SPRING_POOL']},
+  {title:'🗺️ 探索与航行',keys:['NODES','MONSTERS','VOYAGE_EFFECTS','VOYAGE_STEPS']},
+  {title:'⚙️ 机制与数值',keys:['CONFIG','SURVIVAL','BUFFS','RELICS']},
+  {title:'📜 成长与叙事',keys:['ORIGINS','SHOP','META_SHOP','TECH','DIARIES','ENDINGS']}
+];
 const labels={id:'引用对象',name:'名称',description:'说明文案',kind:'内容类型',cost:'AP费用',fuel:'燃料节点数／原生燃灯',damage:'伤害',traits:'特性',targetOperation:'目标操作',effects:'后果效果',heldEffects:'留手效果',output:'生产／合成产物',intervals:'三级生产间隔',amounts:'三级生产数量',healing:'三级治疗量（原生包扎包）',battleOutput:'每战斗回合补给',ingredients:'材料清单',tool:'制造工具',modifiers:'数值修正',reduceSanityLoss:'精神损失减免',retreatReduction:'撤退伤害减免',enemyBuffImmune:'免疫敌方减益',polarity:'增益／减益',clock:'持续计时',duration:'持续轮数',stacking:'叠加方式',tick:'计时后果',rarity:'稀有度',returnChance:'回牌概率（0～1）',protectSanity:'精神归零保护',trueEndingEligible:'真结局资格',unlock:'永久解锁门槛',nodes:'累计节点数',endings:'已达结局数',price:'价格',maxPurchases:'购买次数上限',requires:'前置科技',options:'节点选项',monster:'遭遇怪物',boss:'原生层底节点',hp:'生命',intent:'意图文案',buff:'施加增减益',pollution:'原生层底污染攻击',card:'卡牌商品',relic:'藏品商品',special:'特殊选项操作',type:'效果类型',stat:'生存数值',delta:'变化量（负数扣除）',reason:'效果原因标签',amount:'张数',key:'自定义标记名称',value:'标记值',hpMax:'生命上限',hungerMax:'饱食上限',hydrationMax:'水分上限',sanityMax:'精神上限',hunger:'饱食',hydration:'水分',sanity:'精神',baseAp:'基地AP',battleAp:'战斗AP',handLimit:'手牌容量',schema:'版本（固定）',contentVersion:'内容契约（固定）',randomVersion:'随机算法（固定）',minVoyages:'最小航程',maxVoyages:'最大航程',initial:'初始生存数值',base:'基础上限与行动力',upgradeCost:'升级AP',upgradeMax:'升级等级上限（固定）',restRecovery:'休息恢复量',retreatDamage:'撤退伤害',xpPerLevel:'升级所需经验',bossXp:'层底胜利经验',battleXp:'普通胜利经验',hungerDamage:'饱食归零伤害',hydrationDamage:'水分归零伤害',maxDamage:'每轮惩罚上限'};
 const values={resource:'资源',currency:'货币（原生）',survival:'生存',combat:'战斗',negative:'负面牌',equipment:'设备',action:'行动',return:'回牌',dismantle:'拆除设备',repair:'修补筏格',handtool:'手工工具',positive:'增益',battle:'战斗',voyage:'航行',refresh:'刷新持续时间',stack:'叠加层数',normal:'普通',rare:'永久稀有',supply:'补给',rest:'休整',shop:'商店',exchange:'交换',environment:'环境',ruin:'遗迹战斗',upgrade:'免费升级',enchant:'附魔',blood:'献血随机藏品',ChangeCurrent:'改变生存数值',GiveCard:'给予卡牌',AddBuff:'施加增减益',GrantRelic:'给予藏品',SetFlag:'记录标记（不触发新机制）',DamageCell:'随机外围筏格受损'};
-let draft,baseline,table='CARDS',selection=null,importIssues=[],counter=0,externalTitle='导入失败，原草稿已保留',lastExportUrl=null;
+let draft,baseline,table='CARDS',selection=null,searchQuery='',importIssues=[],counter=0,externalTitle='导入失败，原草稿已保留',lastExportUrl=null;
 const help={CARDS:'资源用于合成和投料；战斗牌的伤害先结算，再执行效果。普通行动牌可直接执行效果；选择拆除／修补后，只执行该目标操作。原生卡牌类型不可修改。设备卡须与设备一一对应，请从设备表新建。',NODES:'普通节点至少一个选项。每个选项先支付AP，再执行特殊操作及后果。特殊操作仅支持免费升级、附魔、交换和献血。战斗节点选择怪物。',EQUIPMENT:'新建设备会同时创建设备卡。两处名称和说明各自独立，请同步修改。自动生产需产物与完整三级间隔、数量；战斗补给每回合产生一张战斗牌。燃灯、主动治疗只属于原生灯与包扎包。',RECIPES:'工具目前仅支持手工工具。材料按数量消耗，合成产出一张卡牌；合成和出牌分别收费。矛架仍需长矛工艺解锁。',ORIGINS:'数值修正直接加到基础上限；精神减免、撤退减免及敌方减益免疫采用既有规则。',BUFFS:'战斗／航行分别计时，持续轮数不能为零。刷新重新计时；叠加增加层数。后果每次计时执行一次。',RELICS:'普通藏品局内有效，稀有藏品永久保留。数值修正、回牌概率和精神保护均使用既有规则。',TECH:'前置科技全部解锁后才可购买；禁止循环。新科技通过数值修正生效；长矛工艺另有原生矛架解锁。',META_SHOP:'价格使用涌潮点。新增商品通过数值修正生效；扩建、遗产、优惠、祝福、工具包等特殊机制仍依赖原生条目。',CONFIG:'只编辑程序支持的数值。升级固定三等级。节点休息恢复量请在节点选项的效果中修改。',VOYAGE_EFFECTS:'每航行轮依次执行这些效果。负变化量扣除数值；新增内容只能使用现有效果类型。',SPRING_POOL:'每航行轮免费抽三张。至少两种不同资源牌，确保交换有其他候选。',SURVIVAL:'饱食、水分归零分别扣生命，受每轮惩罚上限约束。',SHOP:'每件商品选择一种卡牌或一种藏品。贝币付款，尸体按现有折算规则付款。',DIARIES:'遗迹胜利可能获得日记；这里编辑可发现的故事文案。',ENDINGS:'程序决定结局触发条件；这里只编辑现有结局的名称和文案。',MONSTERS:'生命必须大于零。伤害为每回合生命损失；意图文案请与伤害、增减益及污染开关保持一致。',VOYAGE_STEPS:'程序固定结算顺序。航行轮与战斗回合分别计时。'};
 const stepNames={consume:'航行消耗',lamp:'燃灯恢复',survival:'生存惩罚',ageCells:'筏格老化脱落',produce:'设备生产',buffClock:'航行增减益计时',discard:'超限弃牌'};
 const arrays=new Set(['SHOP','DIARIES']),single=new Set(['CONFIG','SURVIVAL','SPRING_POOL','VOYAGE_EFFECTS','VOYAGE_STEPS']);
@@ -16,7 +22,7 @@ const node=(tag,props={},...children)=>{const e=document.createElement(tag);for(
 function changed(){importIssues=[];try{localStorage.setItem(DRAFT_STORAGE_KEY,JSON.stringify(draft));$('status').textContent='草稿已自动保存 · '+(configFingerprint(draft)===baseline?'已应用':'有未应用修改');}catch{$('status').textContent='草稿仅在当前页面 · 浏览器存储不可用';}showErrors();}
 function showErrors(){const result=validateConfig(draft),issues=importIssues.length?importIssues:result.errors;$('errors').replaceChildren();document.querySelectorAll('.field-error').forEach(e=>e.remove());document.querySelectorAll('[aria-invalid]').forEach(e=>e.removeAttribute('aria-invalid'));if(issues.length){$('errors').append(node('strong',{text:importIssues.length?externalTitle:'配置存在 '+issues.length+' 项问题，应用和导出已阻止'}));for(const issue of issues){$('errors').append(node('button',{text:issue.message+' · '+friendlyPath(issue.path)+'；'+issue.suggestion,onclick:()=>focusIssue(issue)}));const target=[...document.querySelectorAll('[data-path]')].find(e=>e.dataset.path===issue.path);if(target){const msg=node('span',{class:'error field-error',id:'err-'+uid('field'),text:issue.message});target.append(msg);const input=target.querySelector('input,select,textarea');if(input){input.setAttribute('aria-invalid','true');input.setAttribute('aria-describedby',msg.id);}}}}}
 function friendlyPath(path){const parts=path.split('.'),t=parts[1];return parts.map((x,i)=>i===0?'内容':tables[x]||labels[x]||(i===2&&!single.has(t)?draft.content?.[t]?.[x]?.name||getDefaultConfig().content?.[t]?.[x]?.name||'待修正条目':/^\d+$/.test(x)?'第 '+(Number(x)+1)+' 项':parts[i-1]==='ingredients'?draft.content.CARDS?.[x]?.name||'待修正材料':x)).join(' / ');}
-function focusIssue(issue){const parts=issue.path.split('.');if(tables[parts[1]]){table=parts[1];selection=single.has(table)?null:parts[2];render();}const target=[...document.querySelectorAll('[data-path]')].find(e=>e.dataset.path===issue.path)||$('form');target.scrollIntoView({block:'center',behavior:'smooth'});(target.querySelector('input,select,textarea,button')||target).focus();}
+function focusIssue(issue){const parts=issue.path.split('.');if(tables[parts[1]]){table=parts[1];selection=single.has(table)?null:parts[2];searchQuery='';if($('record-search'))$('record-search').value='';render();}const target=[...document.querySelectorAll('[data-path]')].find(e=>e.dataset.path===issue.path)||$('form');target.scrollIntoView({block:'center',behavior:'smooth'});(target.querySelector('input,select,textarea,button')||target).focus();}
 function seed(s,key=''){if(s.type==='fixed')return clone(s.value);if(s.type==='number')return Math.max(s.min,0);if(s.type==='boolean')return false;if(s.type==='string')return key==='reason'?'action':key==='id'?uid('option'):key==='name'?'新条目':'待补充说明';if(s.type==='enum')return s.values[0];if(s.type==='ref')return Object.keys(draft.content[s.table])[0]||'';if(s.type==='array')return [];if(s.type==='ingredients')return {wood:1};if(s.type==='primitive')return true;if(s.type==='effect')return {type:'ChangeCurrent',stat:'hp',delta:0};if(s.type==='object')return {};return '';}
 function widget(path,s,label){const val=get(path),box=node('div',{class:'field','data-path':path}),id=uid('input');box.append(node('label',{for:id,text:label||labels[path.split('.').at(-1)]||path.split('.').at(-1)}));
  if(path.startsWith('content.CARDS.')&&path.endsWith('.cost')&&['resource','currency'].includes(get(path.slice(0,-5)).kind)){box.append(node('small',{text:'0（物资不通过出牌付费）'}));return box;}if(path.startsWith('content.CARDS.')&&path.endsWith('.kind')&&(getDefaultConfig().content.CARDS[path.split('.')[2]]||get(path.slice(0,-5)).kind==='equipment')){box.append(node('small',{text:values[val]||val}));return box;}if(s.type==='fixed'||path.endsWith('.id')&&s.type==='string'){box.append(node('small',{text:s.type==='fixed'?String(Array.isArray(val)?val.map(v=>stepNames[v]||v).join(' → '):val):'自动生成的内部编号（不可更改）'}));return box;}
@@ -27,12 +33,71 @@ function widget(path,s,label){const val=get(path),box=node('div',{class:'field',
 }
 function reference(table,value,onchange){const e=node('select',{onchange});for(const [id,def]of Object.entries(draft.content[table]||{}))e.append(node('option',{value:id,text:def.name||id,...(id===value?{selected:''}:{})}));return e;}
 function objectFields(path,s,exclude=[]){const wrap=node('fieldset'),val=get(path)||{};for(const [k,spec]of Object.entries(s.fields)){if(exclude.includes(k)||k==='id'&&spec.type==='string'||path==='content.CONFIG'&&['schema','contentVersion','randomVersion','upgradeMax','restRecovery'].includes(k))continue;const record=path.split('.'),recordTable=record[1],isRecord=record.length===3;const allowedCard=CARD_FIELDS[val.kind]||[];if(isRecord&&recordTable==='CARDS'&&!['id','name','description','kind','cost'].includes(k)&&!allowedCard.includes(k))continue;if(isRecord&&recordTable==='CARDS'&&k==='effects'&&val.targetOperation)continue;if(isRecord&&recordTable==='EQUIPMENT'&&(k==='fuel'||k==='healing'&&record[2]!=='medkit'))continue;if(isRecord&&recordTable==='NODES'&&(k==='boss'||k==='options'&&['battle','ruin'].includes(val.kind)||k==='monster'&&!['battle','ruin'].includes(val.kind)))continue;const required=['name','description','id','cost','kind','type'].includes(k)||path==='content.CONFIG'||path==='content.SURVIVAL'||path.endsWith('.base')||path.endsWith('.initial');if(!required&&val[k]===undefined){wrap.append(node('button',{text:'添加 '+(labels[k]||k),onclick:async()=>{if(k==='targetOperation'){const item=get(path);if(item.effects?.length&&!await ask('目标操作只执行拆除或修补，将移除现有后果效果。继续？'))return;put(path,setTargetOperation(item,seed(spec,k)));}else put(path+'.'+k,seed(spec,k));render();}}));continue;}const field=widget(path+'.'+k,spec,k==='id'&&spec.type==='ref'?tables[spec.table]:labels[k]||k);if(!required&&spec.type!=='fixed')field.append(node('button',{text:'移除此字段',onclick:()=>{put(path+'.'+k,undefined);render();}}));wrap.append(field);}return wrap;}
-function render(){const list=draft.content[table];$('tables').replaceChildren(...Object.entries(tables).map(([key,title])=>node('button',{class:key===table?'selected':'',text:title,onclick:()=>{table=key;selection=null;render();}})));$('table-title').textContent=tables[table];$('records').replaceChildren();$('form').replaceChildren(node('p',{class:'hint',text:help[table]||'编辑已有规则支持的内容；说明文案需与数值同步。'}));$('record-actions').hidden=single.has(table);if(single.has(table)){$('form').append(widget('content.'+table,SCHEMAS[table],tables[table]));}else{const entries=arrays.has(table)?list.map((v,i)=>[String(i),v]):Object.entries(list);if(!entries.some(([id])=>id===selection))selection=entries[0]?.[0]||null;for(const [id,item]of entries)$('records').append(node('button',{class:id===selection?'selected':'',text:item.name||'未命名',onclick:()=>{selection=id;render();}}));if(selection!==null)$('form').append(widget('content.'+table+'.'+selection,SCHEMAS[table],list[selection].name));$('duplicate').disabled=selection===null;$('delete').disabled=selection===null;}showErrors();}
-function newRecord(copy=false){if(single.has(table))return;const s=SCHEMAS[table];let item=copy?clone(draft.content[table][selection]):{};const id=uid(table.toLowerCase());let pairedCopy=null;if(copy&&table==='CARDS'&&item.kind==='equipment'){try{pairedCopy=copyEquipmentById(draft.content,selection,id);}catch(e){notify(e.message);return;}}if(!copy){for(const field of ['name','description','kind','cost','hp','damage','intent','rarity','polarity','clock','duration','stacking','price','maxPurchases','requires','ingredients','output','tool'])if(s.fields[field])item[field]=seed(s.fields[field],field);if(table==='NODES')item.options=[{id:uid('option'),name:'继续航行',description:'完成此节点。',cost:0,effects:[]}];if(table==='EQUIPMENT'){item.output='water';item.intervals=[2,1,1];item.amounts=[1,1,2];}if(table==='SHOP')item.card='wood';}item=prepareRecord(table,item,{copy,id,nextOptionId:()=>uid('option')});
+function render(){
+ const list=draft.content[table];
+ $('tables').replaceChildren(...NAV_GROUPS.map(g=>{
+  const gBox=node('div',{class:'nav-group'},node('div',{class:'nav-group-title',text:g.title}));
+  for(const key of g.keys){
+   const isSingle=single.has(key);
+   const count=isSingle?'固定':(arrays.has(key)?(draft.content[key]?.length??0):Object.keys(draft.content[key]||{}).length);
+   gBox.append(node('button',{class:key===table?'selected':'',onclick:()=>{
+    table=key;selection=null;searchQuery='';
+    const searchInput=$('record-search');if(searchInput)searchInput.value='';
+    render();
+   }},node('span',{text:tables[key]}),node('span',{class:'nav-count',text:String(count)})));
+  }
+  return gBox;
+ }));
+ $('table-title').textContent=tables[table];
+ const isSingle=single.has(table);
+ $('record-actions').hidden=isSingle;
+ const searchBox=$('record-search')?.closest('.search-box');
+ if(searchBox)searchBox.style.display=isSingle?'none':'block';
+ $('records').replaceChildren();
+ $('form').replaceChildren();
+ if(isSingle){
+  const header=node('div',{class:'form-header'},node('h2',{},node('span',{text:tables[table]}),node('span',{class:'record-id-badge',text:'GLOBAL_CONFIG'})));
+  $('form').append(header,node('p',{class:'hint',text:help[table]||'编辑已有规则支持的内容；说明文案需与数值同步。'}));
+  $('form').append(widget('content.'+table,SCHEMAS[table],tables[table]));
+ }else{
+  let entries=arrays.has(table)?list.map((v,i)=>[String(i),v]):Object.entries(list||{});
+  if(searchQuery){
+   entries=entries.filter(([id,item])=>{
+    const q=searchQuery.toLowerCase();
+    return (item.name||'').toLowerCase().includes(q)||(item.description||'').toLowerCase().includes(q)||id.toLowerCase().includes(q);
+   });
+  }
+  if(!entries.some(([id])=>id===selection))selection=entries[0]?.[0]||null;
+  if(entries.length===0){
+   $('records').append(node('p',{class:'hint',style:'text-align:center;margin:16px 0;',text:searchQuery?'未找到匹配条目':'当前分类暂无条目'}));
+  }else{
+   for(const [id,item]of entries){
+    $('records').append(node('button',{class:id===selection?'selected':'',onclick:()=>{selection=id;render();}},node('span',{text:item.name||'未命名'})));
+   }
+  }
+  if(selection!==null&&list[selection]){
+   const currItem=list[selection];
+   const header=node('div',{class:'form-header'},node('h2',{},node('span',{text:currItem.name||'未命名条目'}),node('span',{class:'record-id-badge',text:`${table}.${selection}`})));
+   $('form').append(header,node('p',{class:'hint',text:help[table]||'编辑已有规则支持的内容；说明文案需与数值同步。'}));
+   $('form').append(widget('content.'+table+'.'+selection,SCHEMAS[table],currItem.name));
+  }else{
+   $('form').append(node('p',{class:'hint',text:help[table]||'编辑已有规则支持的内容；说明文案需与数值同步。'}),node('p',{class:'empty',style:'padding:24px 0;text-align:center;color:var(--muted);',text:searchQuery?'没有符合搜索条件的条目':'当前分类暂无条目，请点击“新建”创建'}));
+  }
+  $('duplicate').disabled=selection===null;
+  $('delete').disabled=selection===null;
+ }
+ showErrors();
+}
+function newRecord(copy=false){
+ if(single.has(table))return;
+ searchQuery='';
+ if($('record-search'))$('record-search').value='';
+ const s=SCHEMAS[table];let item=copy?clone(draft.content[table][selection]):{};const id=uid(table.toLowerCase());let pairedCopy=null;if(copy&&table==='CARDS'&&item.kind==='equipment'){try{pairedCopy=copyEquipmentById(draft.content,selection,id);}catch(e){notify(e.message);return;}}if(!copy){for(const field of ['name','description','kind','cost','hp','damage','intent','rarity','polarity','clock','duration','stacking','price','maxPurchases','requires','ingredients','output','tool'])if(s.fields[field])item[field]=seed(s.fields[field],field);if(table==='NODES')item.options=[{id:uid('option'),name:'继续航行',description:'完成此节点。',cost:0,effects:[]}];if(table==='EQUIPMENT'){item.output='water';item.intervals=[2,1,1];item.amounts=[1,1,2];}if(table==='SHOP')item.card='wood';}item=prepareRecord(table,item,{copy,id,nextOptionId:()=>uid('option')});
  if(s.fields.id)item.id=id;if(arrays.has(table)){draft.content[table].push(item);selection=String(draft.content[table].length-1);}else{draft.content[table][id]=item;selection=id;}if(table==='EQUIPMENT'){if(!item.output&&!item.battleOutput){item.output='water';item.intervals=[2,1,1];item.amounts=[1,1,2];}draft.content.CARDS[id]=equipmentCard(item);}if(table==='CARDS'&&item.kind==='equipment'){draft.content.EQUIPMENT[id]=pairedCopy?pairedCopy.equipment:prepareRecord('EQUIPMENT',{name:item.name,description:item.description,output:'water',intervals:[2,1,1],amounts:[1,1,2]},{id});}changed();render();}
 function validAction(action){const result=validateConfig(draft);if(!result.ok){showErrors();$('errors').focus();return;}try{action();}catch(e){$('status').textContent='操作失败：'+e.message;}}
 const gameUrl=()=>location.pathname.includes('/deep-surge-editor')?'/deep-surge-lab/':'../';
 async function init(){let startupMessages=[];try{const published=await loadPublishedConfig(),applied=loadAppliedConfig();for(const result of [published,applied])if(!result.ok)startupMessages.push(...result.errors.map(e=>e.message));}catch(e){startupMessages.push('共享配置读取失败，使用默认内容：'+e.message);}draft=getActiveConfig();baseline=configFingerprint(draft);try{const saved=localStorage.getItem(DRAFT_STORAGE_KEY);if(saved){const candidate=JSON.parse(saved);if(safeDraft(candidate))draft=candidate;else startupMessages.push('本地草稿结构损坏，已恢复当前应用内容。');}}catch{}render();changed();if(startupMessages.length){importIssues=startupMessages.map(message=>({path:'',message,suggestion:'可继续编辑默认内容或导入有效配置文件。'}));externalTitle='加载提示';showErrors();}
+ $('record-search')?.addEventListener('input',e=>{searchQuery=e.target.value.trim().toLowerCase();render();});
  $('create').onclick=()=>newRecord();$('duplicate').onclick=()=>newRecord(true);$('delete').onclick=async()=>{const item=draft.content[table][selection];if(!arrays.has(table)&&Object.hasOwn(getDefaultConfig().content[table],selection)){await notify('程序保留条目不能删除，可以编辑其数值与说明。');return;}if(!await ask('删除“'+item.name+'”？引用它的内容也需要修正。'))return;const candidate=clone(draft);if(arrays.has(table))candidate.content[table].splice(Number(selection),1);else{delete candidate.content[table][selection];if(table==='EQUIPMENT')delete candidate.content.CARDS[selection];if(table==='CARDS'&&item.kind==='equipment')delete candidate.content.EQUIPMENT[selection];}const existing=new Set(validateConfig(draft).errors.map(e=>e.path+e.message)),introduced=validateConfig(candidate).errors.filter(e=>!existing.has(e.path+e.message));if(introduced.length){importIssues=introduced;externalTitle='删除被阻止：请先修改这些引用或补足必需内容';showErrors();$('errors').focus();return;}draft=candidate;selection=null;changed();render();};
  $('save').onclick=()=>validAction(()=>{saveAppliedConfig(clone(draft));baseline=configFingerprint(draft);changed();$('status').textContent='已应用到本浏览器；重新开始航行时生效';});$('launch').onclick=()=>validAction(()=>{saveAppliedConfig(clone(draft));baseline=configFingerprint(draft);location.href=gameUrl();});
  $('reset').onclick=async()=>{if(!await ask('恢复默认内容会覆盖本地草稿，是否继续？'))return;draft=getDefaultConfig();selection=null;changed();render();};
