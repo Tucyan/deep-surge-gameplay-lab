@@ -1,0 +1,12 @@
+{
+  "name": "deep-surge-gameplay-lab",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "check": "node scripts/check.mjs",
+    "export:default": "node scripts/export-default.mjs"
+  }
+}

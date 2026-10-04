@@ -1,0 +1,1002 @@
+{
+  "format": "deep-surge-content",
+  "schema": 1,
+  "content": {
+    "BUFFS": {
+      "inspired": {
+        "name": "鼓舞",
+        "description": "攻击伤害+1，持续3战斗回合。",
+        "polarity": "positive",
+        "clock": "battle",
+        "duration": 3,
+        "stacking": "refresh",
+        "modifiers": {
+          "damage": 1
+        }
+      },
+      "poisoned": {
+        "name": "中毒",
+        "description": "战斗回合末生命−1，持续3回合。",
+        "polarity": "negative",
+        "clock": "battle",
+        "duration": 3,
+        "stacking": "refresh",
+        "tick": [
+          {
+            "type": "ChangeCurrent",
+            "stat": "hp",
+            "delta": -1,
+            "reason": "poison"
+          }
+        ]
+      },
+      "fearful": {
+        "name": "畏惧",
+        "description": "攻击伤害−1，持续2战斗回合。",
+        "polarity": "negative",
+        "clock": "battle",
+        "duration": 2,
+        "stacking": "refresh",
+        "modifiers": {
+          "damage": -1
+        }
+      },
+      "rested": {
+        "name": "休整余裕",
+        "description": "基地AP上限+1，持续2航行轮。",
+        "polarity": "positive",
+        "clock": "voyage",
+        "duration": 2,
+        "stacking": "refresh",
+        "modifiers": {
+          "baseAp": 1
+        }
+      }
+    },
+    "CARDS": {
+      "wood": {
+        "name": "木头",
+        "kind": "resource",
+        "cost": 0,
+        "description": "制造材料；灯燃料1节点；两张木头可扩建一格。",
+        "fuel": 1
+      },
+      "iron": {
+        "name": "废铁",
+        "kind": "resource",
+        "cost": 0,
+        "description": "制造材料。"
+      },
+      "plastic": {
+        "name": "塑料",
+        "kind": "resource",
+        "cost": 0,
+        "description": "滤水器与土盆的制造材料。"
+      },
+      "rope": {
+        "name": "绳索",
+        "kind": "resource",
+        "cost": 0,
+        "description": "弓弩的制造材料。"
+      },
+      "cloth": {
+        "name": "布条",
+        "kind": "resource",
+        "cost": 0,
+        "description": "制造包扎包。"
+      },
+      "corpse": {
+        "name": "怪物尸体",
+        "kind": "resource",
+        "cost": 0,
+        "description": "灯燃料3节点，或与海怪商人交换。",
+        "fuel": 3
+      },
+      "coin": {
+        "name": "贝币",
+        "kind": "currency",
+        "cost": 0,
+        "description": "局内商店货币，全部贝币共占一张容量。"
+      },
+      "water": {
+        "name": "淡水",
+        "kind": "survival",
+        "cost": 0,
+        "description": "水分+25，瞬发。",
+        "effects": [
+          {
+            "type": "ChangeCurrent",
+            "stat": "hydration",
+            "delta": 25
+          }
+        ]
+      },
+      "food": {
+        "name": "食用植物",
+        "kind": "survival",
+        "cost": 0,
+        "description": "饱食+25，瞬发。",
+        "effects": [
+          {
+            "type": "ChangeCurrent",
+            "stat": "hunger",
+            "delta": 25
+          }
+        ]
+      },
+      "calm": {
+        "name": "灯火余温",
+        "kind": "survival",
+        "cost": 0,
+        "description": "精神+15，瞬发。",
+        "effects": [
+          {
+            "type": "ChangeCurrent",
+            "stat": "sanity",
+            "delta": 15
+          }
+        ]
+      },
+      "punch": {
+        "name": "出拳",
+        "kind": "combat",
+        "cost": 1,
+        "description": "造成1伤害；打出或弃置后回到手牌。",
+        "damage": 1,
+        "traits": [
+          "return"
+        ]
+      },
+      "arrow": {
+        "name": "射箭",
+        "kind": "combat",
+        "cost": 0,
+        "description": "造成2伤害，瞬发；本场战斗有效。",
+        "damage": 2
+      },
+      "spear": {
+        "name": "矛击",
+        "kind": "combat",
+        "cost": 1,
+        "description": "造成4伤害；本场战斗有效。",
+        "damage": 4
+      },
+      "pollution": {
+        "name": "潮蚀污染",
+        "kind": "negative",
+        "cost": 2,
+        "description": "留手每战斗回合损失2生命；花2 AP清除。不能附魔或直接弃掉。",
+        "heldEffects": [
+          {
+            "type": "ChangeCurrent",
+            "stat": "hp",
+            "delta": -2,
+            "reason": "pollution"
+          }
+        ]
+      },
+      "lamp": {
+        "name": "灯",
+        "kind": "equipment",
+        "cost": 1,
+        "description": "安装后投入木头/尸体，燃烧时每节点恢复精神15。"
+      },
+      "filter": {
+        "name": "滤水器",
+        "kind": "equipment",
+        "cost": 1,
+        "description": "Ⅰ级每两节点产淡水；Ⅱ级起每节点产淡水。"
+      },
+      "planter": {
+        "name": "土盆",
+        "kind": "equipment",
+        "cost": 1,
+        "description": "Ⅰ级每两节点产植物；Ⅱ级起每节点产植物。"
+      },
+      "medkit": {
+        "name": "包扎包",
+        "kind": "equipment",
+        "cost": 1,
+        "description": "安装后花1 AP恢复生命6，高等级治疗更多。"
+      },
+      "crossbow": {
+        "name": "弓弩",
+        "kind": "equipment",
+        "cost": 1,
+        "description": "每战斗回合产生射箭；Ⅱ/Ⅲ级每2/3张箭占一格。"
+      },
+      "spearRack": {
+        "name": "矛架",
+        "kind": "equipment",
+        "cost": 1,
+        "description": "每战斗回合产生矛击。"
+      },
+      "dismantle": {
+        "name": "拆除",
+        "kind": "action",
+        "targetOperation": "dismantle",
+        "cost": 1,
+        "description": "移除指定设备，回收一份配方材料。"
+      },
+      "repair": {
+        "name": "修补包",
+        "kind": "action",
+        "targetOperation": "repair",
+        "cost": 1,
+        "description": "修复指定的破损筏格。"
+      }
+    },
+    "CONFIG": {
+      "schema": 1,
+      "contentVersion": "gameplay-experiment-v1",
+      "randomVersion": "xorshift32-v1",
+      "minVoyages": 10,
+      "maxVoyages": 15,
+      "initial": {
+        "hp": 30,
+        "hunger": 40,
+        "hydration": 40,
+        "sanity": 80
+      },
+      "base": {
+        "hpMax": 30,
+        "hungerMax": 100,
+        "hydrationMax": 100,
+        "sanityMax": 100,
+        "baseAp": 3,
+        "battleAp": 3,
+        "handLimit": 10,
+        "damage": 0
+      },
+      "upgradeCost": 1,
+      "upgradeMax": 3,
+      "restRecovery": 40,
+      "retreatDamage": 4,
+      "xpPerLevel": 5,
+      "bossXp": 20,
+      "battleXp": 5
+    },
+    "DIARIES": [
+      {
+        "id": "diary1",
+        "name": "前人的日记：灯",
+        "description": "“灯不是为了照亮海，而是提醒我们还在船上。”"
+      },
+      {
+        "id": "diary2",
+        "name": "前人的日记：回声",
+        "description": "“我听见歌声时，记得没有回头。”"
+      },
+      {
+        "id": "diary3",
+        "name": "前人的日记：潮眼",
+        "description": "“渡过最后的眼，记忆便会找到归处。”"
+      }
+    ],
+    "ENDINGS": {
+      "withdrawn": {
+        "name": "离开潮眼",
+        "description": "你未击败潮眼，带着已完成的航程退回岸边。"
+      },
+      "survived": {
+        "name": "灯火未熄",
+        "description": "你击退潮眼，带着漂流的记忆抵达彼岸。"
+      },
+      "true": {
+        "name": "真结局：回声归航",
+        "description": "塞壬的珍珠守住记忆，前人的日记指引你驶向潮汐之外。"
+      },
+      "dead": {
+        "name": "沉入深潮",
+        "description": "生命消逝，海仍记得这一段航行。"
+      },
+      "mad": {
+        "name": "迷失潮声",
+        "description": "精神归零，你成为歌声的一部分。"
+      },
+      "abandon": {
+        "name": "返回岸边",
+        "description": "你结束了这次探索，带回已经走过的航程。"
+      }
+    },
+    "EQUIPMENT": {
+      "lamp": {
+        "name": "灯",
+        "description": "燃烧时抵消精神耗损；燃料越多燃烧越久。",
+        "fuel": true
+      },
+      "filter": {
+        "name": "滤水器",
+        "description": "自动生产淡水。",
+        "output": "water",
+        "intervals": [
+          2,
+          1,
+          1
+        ],
+        "amounts": [
+          1,
+          1,
+          2
+        ]
+      },
+      "planter": {
+        "name": "土盆",
+        "description": "自动生产食用植物。",
+        "output": "food",
+        "intervals": [
+          2,
+          1,
+          1
+        ],
+        "amounts": [
+          1,
+          1,
+          2
+        ]
+      },
+      "medkit": {
+        "name": "包扎包",
+        "description": "主动治疗；1 AP。",
+        "healing": [
+          6,
+          9,
+          12
+        ]
+      },
+      "crossbow": {
+        "name": "弓弩",
+        "description": "战斗每回合产箭；升级增加堆叠容量。",
+        "battleOutput": "arrow"
+      },
+      "spearRack": {
+        "name": "矛架",
+        "description": "战斗每回合产矛；升级提高伤害。",
+        "battleOutput": "spear"
+      }
+    },
+    "META_SHOP": {
+      "raft": {
+        "name": "木筏扩建许可",
+        "description": "永久扩建上限提高为4×4。",
+        "price": 8,
+        "maxPurchases": 1
+      },
+      "body": {
+        "name": "提高身体素质",
+        "description": "永久生命、饱食、水分、精神上限各+5。",
+        "price": 6,
+        "maxPurchases": 3,
+        "modifiers": {
+          "hpMax": 5,
+          "hungerMax": 5,
+          "hydrationMax": 5,
+          "sanityMax": 5
+        }
+      },
+      "inheritance": {
+        "name": "流浪者遗产",
+        "description": "每局开局获得3贝币。",
+        "price": 4,
+        "maxPurchases": 1
+      },
+      "coupon": {
+        "name": "商人优惠券",
+        "description": "局内商店价格大于1时减1。",
+        "price": 5,
+        "maxPurchases": 1
+      },
+      "hands": {
+        "name": "手工者手记",
+        "description": "永久基地和战斗AP上限各+1。",
+        "price": 12,
+        "maxPurchases": 1,
+        "modifiers": {
+          "baseAp": 1,
+          "battleAp": 1
+        }
+      },
+      "smallBox": {
+        "name": "小箱子",
+        "description": "永久手牌上限+1。",
+        "price": 5,
+        "maxPurchases": 1,
+        "modifiers": {
+          "handLimit": 1
+        }
+      },
+      "bigBox": {
+        "name": "大箱子",
+        "description": "永久手牌上限+2。",
+        "price": 9,
+        "maxPurchases": 1,
+        "modifiers": {
+          "handLimit": 2
+        }
+      },
+      "blessing": {
+        "name": "下局祝福",
+        "description": "下局开战时获得鼓舞；仅消耗一次。",
+        "price": 3,
+        "maxPurchases": 5
+      },
+      "supply": {
+        "name": "下局工具包",
+        "description": "下局额外获得一张滤水器设备牌；仅消耗一次。",
+        "price": 4,
+        "maxPurchases": 5
+      }
+    },
+    "MONSTERS": {
+      "biter": {
+        "name": "啃筏者",
+        "hp": 5,
+        "damage": 2,
+        "intent": "咬击：生命−2。"
+      },
+      "jelly": {
+        "name": "胶膜水母",
+        "hp": 6,
+        "damage": 1,
+        "intent": "刺击：生命−1，并施加中毒。",
+        "buff": "poisoned"
+      },
+      "crab": {
+        "name": "绝壳蟹",
+        "hp": 8,
+        "damage": 3,
+        "intent": "重击：生命−3。"
+      },
+      "sentinel": {
+        "name": "遗迹守卫",
+        "hp": 10,
+        "damage": 3,
+        "intent": "回响：生命−3，并施加畏惧。",
+        "buff": "fearful"
+      },
+      "boss": {
+        "name": "涌潮之眼",
+        "hp": 18,
+        "damage": 3,
+        "intent": "潮蚀：生命−3；隔回合污染手牌。",
+        "buff": "fearful",
+        "pollution": true
+      }
+    },
+    "NODES": {
+      "drift": {
+        "id": "drift",
+        "name": "漂浮物带",
+        "kind": "supply",
+        "description": "缆绳上挂着旧船的残片。选择一组材料。",
+        "options": [
+          {
+            "id": "wood",
+            "name": "打捞木料",
+            "description": "获得木头×2、塑料×1。",
+            "effects": [
+              {
+                "type": "GiveCard",
+                "id": "wood",
+                "amount": 2
+              },
+              {
+                "type": "GiveCard",
+                "id": "plastic",
+                "amount": 1
+              }
+            ],
+            "cost": 0
+          },
+          {
+            "id": "metal",
+            "name": "打捞金属",
+            "description": "获得废铁、绳索、布条各1。",
+            "effects": [
+              {
+                "type": "GiveCard",
+                "id": "iron"
+              },
+              {
+                "type": "GiveCard",
+                "id": "rope"
+              },
+              {
+                "type": "GiveCard",
+                "id": "cloth"
+              }
+            ],
+            "cost": 0
+          },
+          {
+            "id": "leave",
+            "name": "平稳驶过",
+            "description": "不额外获得材料。",
+            "effects": [],
+            "cost": 0
+          }
+        ]
+      },
+      "camp": {
+        "id": "camp",
+        "name": "灯火休整地",
+        "kind": "rest",
+        "description": "守灯人邀请你靠岸。选择一种休整。",
+        "options": [
+          {
+            "id": "rest",
+            "name": "灯下休息",
+            "description": "四项生存数值各恢复40；获得休整余裕。",
+            "effects": [
+              {
+                "type": "ChangeCurrent",
+                "stat": "hp",
+                "delta": 40
+              },
+              {
+                "type": "ChangeCurrent",
+                "stat": "hunger",
+                "delta": 40
+              },
+              {
+                "type": "ChangeCurrent",
+                "stat": "hydration",
+                "delta": 40
+              },
+              {
+                "type": "ChangeCurrent",
+                "stat": "sanity",
+                "delta": 40
+              },
+              {
+                "type": "AddBuff",
+                "id": "rested"
+              }
+            ],
+            "cost": 0
+          },
+          {
+            "id": "upgrade",
+            "name": "免费升级设备",
+            "description": "选择一件已安装设备，免费升一级。",
+            "effects": [],
+            "cost": 0,
+            "special": "upgrade"
+          },
+          {
+            "id": "enchant",
+            "name": "附魔手牌",
+            "description": "选择一张非污染牌，赋予回牌或瞬发。",
+            "effects": [],
+            "cost": 0,
+            "special": "enchant"
+          },
+          {
+            "id": "leave",
+            "name": "继续航行",
+            "description": "不获得休整效果。",
+            "effects": [],
+            "cost": 0
+          }
+        ]
+      },
+      "trader": {
+        "id": "trader",
+        "name": "海怪商人",
+        "kind": "shop",
+        "description": "商人用触腕敲击货箱。贝币或尸体皆可交易。",
+        "options": [
+          {
+            "id": "leave",
+            "name": "离开商店",
+            "description": "保留货币，继续航行。",
+            "effects": [],
+            "cost": 0
+          }
+        ]
+      },
+      "jelly": {
+        "id": "jelly",
+        "name": "水母转换者",
+        "kind": "exchange",
+        "description": "水母吞吐着陌生的记忆。你可以交换一张牌或献血。",
+        "options": [
+          {
+            "id": "card",
+            "name": "喂给它一张牌",
+            "description": "选择一张资源牌，随机换成另一张资源牌。",
+            "effects": [],
+            "cost": 0,
+            "special": "exchange"
+          },
+          {
+            "id": "blood",
+            "name": "献出5点生命",
+            "description": "50%获得普通藏品，否则无所得。",
+            "effects": [],
+            "cost": 0,
+            "special": "blood"
+          },
+          {
+            "id": "leave",
+            "name": "保持距离",
+            "description": "不付出代价。",
+            "effects": [],
+            "cost": 0
+          }
+        ]
+      },
+      "storm": {
+        "id": "storm",
+        "name": "裂潮风暴",
+        "kind": "environment",
+        "description": "浪头从筏边撕开一条缝。",
+        "options": [
+          {
+            "id": "risk",
+            "name": "深入打捞",
+            "description": "外围一格受损；获得木头×3、废铁×2。",
+            "effects": [
+              {
+                "type": "DamageCell"
+              },
+              {
+                "type": "GiveCard",
+                "id": "wood",
+                "amount": 3
+              },
+              {
+                "type": "GiveCard",
+                "id": "iron",
+                "amount": 2
+              }
+            ],
+            "cost": 0
+          },
+          {
+            "id": "leave",
+            "name": "绕过浪头",
+            "description": "不受额外损伤。",
+            "effects": [],
+            "cost": 0
+          }
+        ]
+      },
+      "battle": {
+        "id": "battle",
+        "name": "捕食者水域",
+        "kind": "battle",
+        "description": "水下传来咬合声。战胜敌人获得尸体、贝币与经验。",
+        "monster": "biter"
+      },
+      "jellyBattle": {
+        "id": "jellyBattle",
+        "name": "水母幽光",
+        "kind": "battle",
+        "description": "透明的伞盖遮住航线。",
+        "monster": "jelly"
+      },
+      "crabBattle": {
+        "id": "crabBattle",
+        "name": "硬壳暗礁",
+        "kind": "battle",
+        "description": "一只绝壳蟹盘踞在暗礁上。",
+        "monster": "crab"
+      },
+      "ruin": {
+        "id": "ruin",
+        "name": "沉没遗迹",
+        "kind": "ruin",
+        "description": "困难战斗；胜利50%获得藏品，50%获得日记。败退恢复进入时生命。",
+        "monster": "sentinel"
+      },
+      "boss": {
+        "id": "boss",
+        "name": "层底：涌潮之眼",
+        "kind": "battle",
+        "description": "本层最后的阻拦。Boss会污染手牌。",
+        "monster": "boss",
+        "boss": true
+      }
+    },
+    "ORIGINS": {
+      "strong": {
+        "name": "强壮之人",
+        "description": "生命、饱食、水分上限各+10。",
+        "modifiers": {
+          "hpMax": 10,
+          "hungerMax": 10,
+          "hydrationMax": 10
+        }
+      },
+      "fool": {
+        "name": "愚者",
+        "description": "事件及未燃灯的精神损失少5。",
+        "reduceSanityLoss": 5
+      },
+      "restless": {
+        "name": "多动症",
+        "description": "基地和战斗AP上限各+1（实验）。",
+        "modifiers": {
+          "baseAp": 1,
+          "battleAp": 1
+        }
+      },
+      "hoarder": {
+        "name": "囤积癖",
+        "description": "手牌上限+1。",
+        "modifiers": {
+          "handLimit": 1
+        }
+      },
+      "zealot": {
+        "name": "战斗狂热",
+        "description": "普通战斗撤退损失减少5（实验）。",
+        "retreatReduction": 5
+      },
+      "skeptic": {
+        "name": "无魔之人",
+        "description": "免疫敌方战斗Debuff；实体污染牌仍需处理。",
+        "enemyBuffImmune": true
+      }
+    },
+    "RECIPES": {
+      "lamp": {
+        "id": "lamp",
+        "name": "制造灯",
+        "ingredients": {
+          "wood": 1,
+          "iron": 1
+        },
+        "output": "lamp",
+        "cost": 1,
+        "tool": "handtool"
+      },
+      "filter": {
+        "id": "filter",
+        "name": "制造滤水器",
+        "ingredients": {
+          "plastic": 2,
+          "wood": 1
+        },
+        "output": "filter",
+        "cost": 1,
+        "tool": "handtool"
+      },
+      "planter": {
+        "id": "planter",
+        "name": "制造土盆",
+        "ingredients": {
+          "plastic": 1,
+          "wood": 1
+        },
+        "output": "planter",
+        "cost": 1,
+        "tool": "handtool"
+      },
+      "medkit": {
+        "id": "medkit",
+        "name": "制造包扎包",
+        "ingredients": {
+          "cloth": 2,
+          "wood": 1
+        },
+        "output": "medkit",
+        "cost": 1,
+        "tool": "handtool"
+      },
+      "crossbow": {
+        "id": "crossbow",
+        "name": "制造弓弩",
+        "ingredients": {
+          "iron": 1,
+          "rope": 1,
+          "wood": 1
+        },
+        "output": "crossbow",
+        "cost": 1,
+        "tool": "handtool"
+      },
+      "spearRack": {
+        "id": "spearRack",
+        "name": "制造矛架",
+        "ingredients": {
+          "wood": 2,
+          "iron": 1
+        },
+        "output": "spearRack",
+        "cost": 1,
+        "tool": "handtool"
+      },
+      "dismantle": {
+        "id": "dismantle",
+        "name": "制造拆除牌",
+        "ingredients": {
+          "wood": 1,
+          "iron": 1
+        },
+        "output": "dismantle",
+        "cost": 1,
+        "tool": "handtool"
+      },
+      "repair": {
+        "id": "repair",
+        "name": "制造修补包",
+        "ingredients": {
+          "wood": 1,
+          "iron": 1
+        },
+        "output": "repair",
+        "cost": 1,
+        "tool": "handtool"
+      }
+    },
+    "RELICS": {
+      "luckyShell": {
+        "name": "回声贝壳",
+        "rarity": "normal",
+        "description": "普通出牌有25%概率回手；不影响污染牌与设备安装。",
+        "returnChance": 0.25
+      },
+      "guardian": {
+        "name": "守潮骨片",
+        "rarity": "normal",
+        "description": "生命上限+5。",
+        "modifiers": {
+          "hpMax": 5
+        }
+      },
+      "curse": {
+        "name": "锈蚀金币",
+        "rarity": "normal",
+        "description": "攻击伤害+2，但基地AP上限−1。",
+        "modifiers": {
+          "damage": 2,
+          "baseAp": -1
+        }
+      },
+      "pearl": {
+        "name": "塞壬的珍珠",
+        "rarity": "rare",
+        "description": "达成一次结局后获得；精神归零仍可航行，可进入真结局。",
+        "protectSanity": true,
+        "trueEndingEligible": true,
+        "unlock": {
+          "endings": 1
+        }
+      },
+      "memory": {
+        "name": "记忆的回响",
+        "rarity": "rare",
+        "description": "累计完成50节点获得；基地和战斗AP上限各+1。",
+        "modifiers": {
+          "baseAp": 1,
+          "battleAp": 1
+        },
+        "unlock": {
+          "nodes": 50
+        }
+      }
+    },
+    "SHOP": [
+      {
+        "id": "filter",
+        "name": "滤水器牌",
+        "price": 3,
+        "card": "filter"
+      },
+      {
+        "id": "planter",
+        "name": "土盆牌",
+        "price": 3,
+        "card": "planter"
+      },
+      {
+        "id": "lamp",
+        "name": "灯牌",
+        "price": 2,
+        "card": "lamp"
+      },
+      {
+        "id": "crossbow",
+        "name": "弓弩牌",
+        "price": 4,
+        "card": "crossbow"
+      },
+      {
+        "id": "guardian",
+        "name": "守潮骨片",
+        "price": 4,
+        "relic": "guardian"
+      },
+      {
+        "id": "luckyShell",
+        "name": "回声贝壳",
+        "price": 5,
+        "relic": "luckyShell"
+      }
+    ],
+    "SPRING_POOL": [
+      "wood",
+      "iron",
+      "plastic",
+      "rope",
+      "cloth"
+    ],
+    "SURVIVAL": {
+      "hungerDamage": 2,
+      "hydrationDamage": 3,
+      "maxDamage": 4
+    },
+    "TECH": {
+      "knowledge": {
+        "name": "漂流知识",
+        "description": "永久手牌上限+1。",
+        "price": 3,
+        "requires": [],
+        "modifiers": {
+          "handLimit": 1
+        }
+      },
+      "craft": {
+        "name": "熟练双手",
+        "description": "永久基地AP上限+1。",
+        "price": 6,
+        "requires": [
+          "knowledge"
+        ],
+        "modifiers": {
+          "baseAp": 1
+        }
+      },
+      "endurance": {
+        "name": "深海耐性",
+        "description": "永久精神上限+10。",
+        "price": 4,
+        "requires": [
+          "knowledge"
+        ],
+        "modifiers": {
+          "sanityMax": 10
+        }
+      },
+      "spear": {
+        "name": "长矛工艺",
+        "description": "解锁矛架制造。",
+        "price": 5,
+        "requires": [
+          "craft"
+        ]
+      }
+    },
+    "VOYAGE_EFFECTS": [
+      {
+        "type": "ChangeCurrent",
+        "stat": "hunger",
+        "delta": -30,
+        "reason": "voyage"
+      },
+      {
+        "type": "ChangeCurrent",
+        "stat": "hydration",
+        "delta": -30,
+        "reason": "voyage"
+      },
+      {
+        "type": "ChangeCurrent",
+        "stat": "sanity",
+        "delta": -15,
+        "reason": "voyage"
+      }
+    ],
+    "VOYAGE_STEPS": [
+      "consume",
+      "lamp",
+      "survival",
+      "ageCells",
+      "produce",
+      "buffClock",
+      "discard"
+    ]
+  }
+}

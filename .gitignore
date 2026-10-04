@@ -1,0 +1,11 @@
+node_modules/
+*.log
+*.bundle
+*.tar.gz
+*.zip
+.env
+.env.*
+evidence/*.png
+exports/
+private/
+
