@@ -6,6 +6,6 @@ node_modules/
 .env
 .env.*
 evidence/*.png
+evidence/*.jpg
 exports/
 private/
-
