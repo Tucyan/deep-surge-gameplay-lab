@@ -38,6 +38,12 @@ function initialSave() {
     const raw = localStorage.getItem(STORAGE_KEY); if (!raw) return;
     session = GameSession.restore(JSON.parse(raw)); view=session.getView();
     saveAvailable=true; restoredRun = !['home','finished'].includes(view.phase);
+    if(['discard','battleDiscard'].includes(view.phase) && canConfirmDiscard(view)){
+      try {
+        const autoRes=session.execute({type:'FinishDiscard'});
+        if(autoRes.ok){ view=autoRes.view || session.getView(); persist(); }
+      } catch {}
+    }
   } catch(e) { saveFailure=`旧存档无法读取：${e.message || '内容损坏'}。可导入另一份记录。`; }
 }
 function run(command) {
@@ -46,6 +52,20 @@ function run(command) {
   catch(e) { toast(`操作失败：${e.message}`,true); return false; }
   if (!result.ok) { toast((result.errors || ['暂时无法执行']).join('；'),true); return false; }
   view=result.view || session.getView(); persist();
+  if(['discard','battleDiscard'].includes(view.phase) && canConfirmDiscard(view)){
+    try {
+      const autoRes=session.execute({type:'FinishDiscard'});
+      if(autoRes.ok){
+        view=autoRes.view || session.getView();
+        persist();
+        if(command.type==='DiscardCards'){
+          toast('手牌已满足容量，已自动确认继续');
+        } else if(command.type==='EndVoyage'){
+          toast('手牌未超限，已自动进入下一航程');
+        }
+      }
+    } catch {}
+  }
   const ids=new Set((view.hand || []).map(c=>c.instanceId));
   if (!ids.has(selectedCard)) selectedCard=null;
   discarded=new Set([...discarded].filter(id=>ids.has(id)));
@@ -118,9 +138,12 @@ function stage() {
 function intent(value) { return typeof value==='string'?value:value?.description || value?.name || (value?JSON.stringify(value):'待定'); }
 function nodeKind(k) {return {combat:'⚔️ 战斗',battle:'⚔️ 战斗',event:'📜 事件',rest:'⛺ 休整',exchange:'🔄 交换',environment:'🌊 环境',camp:'⛺ 营地',ruin:'🏛️ 遗迹',shop:'🐙 交易',spring:'💧 涌泉',boss:'👁️ 首领',supply:'📦 补给',treasure:'💎 宝物'}[k] || k || '探索';}
 function discardPrompt() {
-  return `<div class="notice">${view.phase==='battleDiscard'?'战斗回合整理':'航行结束整理'}：容量 ${view.capacity ?? view.hand?.length ?? 0} / ${view.stats?.handLimit || 0}。${view.excess>0?`超出 ${view.excess}，请选中手牌并丢弃。`:'已满足容量限制，可以确认继续。'}</div><p class="muted">点击手牌可多选；先执行弃牌，再确认整理。负面牌若无法丢弃，会给出原因。</p>`;
+  return `<div class="notice">${view.phase==='battleDiscard'?'战斗回合整理':'航行结束整理'}：容量 ${view.capacity ?? view.hand?.length ?? 0} / ${view.stats?.handLimit || 0}。${view.excess>0?`超出 ${view.excess} 张，请勾选丢弃（降至上限后自动确认推进）。`:'已满足容量限制，正在自动进入下一阶段…'}</div><p class="muted">点击手牌可选中；弃牌满足容量上限后将自动确认继续。负面牌需消耗 AP 清除。</p>`;
 }
-function discardFooter(){return button(`丢弃选中 (${discarded.size})`,'discard',!discarded.size)+button(view.phase==='battleDiscard'?'继续战斗':'确认整理','finishDiscard',!canConfirmDiscard(view),'primary');}
+function discardFooter(){
+  const canDiscard = discarded.size > 0;
+  return button(`丢弃选中 (${discarded.size})`,'discard',!canDiscard,'primary')+(canConfirmDiscard(view)?button(view.phase==='battleDiscard'?'继续战斗':'确认整理','finishDiscard',false,'quiet'):'');
+}
 function hand() {
   const c=card();
   const currentAp=isBattle()?view.battleAp:view.ap;
@@ -132,7 +155,7 @@ function hand() {
     else if(c.kind==='combat')guideHint='<span class="guide-hint">💡 战斗指引：在上方战场点击存活敌人锁定目标</span>';
     else if(CARDS[c.definitionId]?.fuel)guideHint='<span class="guide-hint">💡 投料指引：点击右侧木筏上的【灯】后点击添燃料</span>';
   }
-  return `<section class="panel hand-panel"><div class="panel-head"><h2>手牌 <small>${view.capacity ?? view.hand?.length ?? 0} / ${view.stats?.handLimit || 0}</small></h2>${button('查看详情','inspect',!c,'quiet')}</div><div class="panel-body" id="hand-body"><div class="hand-grid">${(view.hand || []).map(c=>{const affordable=(c.cost??0)<=currentAp;return `<button class="hand-card kind-${c.kind} ${c.kind==='negative'?'negative':''} ${!affordable&&c.cost>0?'unaffordable':''} ${isDiscard()?discarded.has(c.instanceId)?'selected':'':selectedCard===c.instanceId?'selected':''}" data-action="card" ${tagged(c.instanceId)} aria-pressed="${isDiscard()?discarded.has(c.instanceId):selectedCard===c.instanceId}"><span class="card-name">${esc(c.name)}</span><span class="card-meta">${esc(cardKind(c.kind))} <span class="card-ap-tag">${c.cost ?? 0} AP</span> ${c.quantity>1?`×${c.quantity}`:''}</span>${c.enchant?.length?`<span class="good card-meta">${c.enchant.map(enchantName).join(' · ')}</span>`:''}</button>`;}).join('')}</div>${!view.hand?.length?'<p class="empty">行囊空了，新的物资还在海上。</p>':''}</div><div class="selection-detail">${isDiscard()?`<span class="muted">已选 ${discarded.size} 张手牌</span>`:c?`<strong>${esc(c.name)}</strong> <span class="muted">${esc(c.description)}</span>${guideHint}<div class="row" style="margin-top:6px">${button(c.kind==='equipment'?'⚙️ 安装':c.kind==='negative'?'☣️ 清除':c.definitionId==='dismantle'?'🔨 拆除设备':'✨ 使用','play',!canPlaySelected(),'primary')}${button('🔥 灯笼添燃料','fuel',!canAct() || !equipment() || !CARDS[c.definitionId]?.fuel)}${view.pendingEnchant?button('附魔','enchant',!canAct() || !enchantable()):''}<small>${selectedTarget?`已选目标：${esc(targetLabel())}`:'尚未指定目标'}</small></div>`:'<span class="muted">点击手牌查看说明与操作。双击可用手牌可快速打出。</span>'}</div></section>`;
+  return `<section class="panel hand-panel"><div class="panel-head"><h2>手牌 <small>${view.capacity ?? view.hand?.length ?? 0} / ${view.stats?.handLimit || 0}</small></h2>${button('查看详情','inspect',!c,'quiet')}</div><div class="panel-body" id="hand-body"><div class="hand-grid">${(view.hand || []).map(c=>{const affordable=(c.cost??0)<=currentAp;return `<button class="hand-card kind-${c.kind} ${c.kind==='negative'?'negative':''} ${!affordable&&c.cost>0?'unaffordable':''} ${isDiscard()?discarded.has(c.instanceId)?'selected':'':selectedCard===c.instanceId?'selected':''}" data-action="card" ${tagged(c.instanceId)} aria-pressed="${isDiscard()?discarded.has(c.instanceId):selectedCard===c.instanceId}"><span class="card-name">${esc(c.name)}</span><span class="card-meta">${esc(cardKind(c.kind))} <span class="card-ap-tag">${c.cost ?? 0} AP</span> ${c.quantity>1?`×${c.quantity}`:''}</span>${c.enchant?.length?`<span class="good card-meta">${c.enchant.map(enchantName).join(' · ')}</span>`:''}</button>`;}).join('')}</div>${!view.hand?.length?'<p class="empty">行囊空了，新的物资还在海上。</p>':''}</div><div class="selection-detail">${isDiscard()?`<div class="row between"><span>已选 <strong>${discarded.size}</strong> 张手牌${view.excess>0?`（尚需丢弃 ${Math.max(0, view.excess - discarded.size)} 张）`:''}</span>${button(`立即丢弃 (${discarded.size})`,'discard',!discarded.size,'primary')}</div>`:c?`<strong>${esc(c.name)}</strong> <span class="muted">${esc(c.description)}</span>${guideHint}<div class="row" style="margin-top:6px">${button(c.kind==='equipment'?'⚙️ 安装':c.kind==='negative'?'☣️ 清除':c.definitionId==='dismantle'?'🔨 拆除设备':'✨ 使用','play',!canPlaySelected(),'primary')}${button('🔥 灯笼添燃料','fuel',!canAct() || !equipment() || !CARDS[c.definitionId]?.fuel)}${view.pendingEnchant?button('附魔','enchant',!canAct() || !enchantable()):''}<small>${selectedTarget?`已选目标：${esc(targetLabel())}`:'尚未指定目标'}</small></div>`:'<span class="muted">点击手牌查看说明与操作。双击可用手牌可快速打出。</span>'}</div></section>`;
 }
 function cardKind(k){return {resource:'🪵 材料',survival:'💧 生存',combat:'⚔️ 战术',equipment:'⚙️ 设备',action:'🔨 行动',negative:'☣️ 负面',currency:'🪙 货币'}[k] || k || '物资';}
 function enchantName(k){return {return:'回牌',instant:'瞬发'}[k] || k;}

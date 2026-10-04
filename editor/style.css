@@ -66,11 +66,11 @@ header {
   gap: 8px;
 }
 .brand-logo { font-size: 20px; }
-h1 { font-size: 16px; margin: 0; font-weight: 700; letter-spacing: 0.5px; }
-header p { margin: 0; color: var(--muted); font-size: 11.5px; }
+h1 { font-size: 17.5px; margin: 0; font-weight: 700; letter-spacing: 0.5px; }
+header p { margin: 0; color: var(--muted); font-size: 12.5px; }
 
 .badge {
-  font-size: 10.5px;
+  font-size: 11px;
   font-weight: 600;
   color: var(--accent);
   background: #15383f;
@@ -79,7 +79,7 @@ header p { margin: 0; color: var(--muted); font-size: 11.5px; }
   padding: 1px 7px;
 }
 #status {
-  font-size: 12px;
+  font-size: 12.5px;
   color: var(--gold);
   background: #25241b;
   border: 1px solid #5a4b27;
@@ -121,7 +121,7 @@ button {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  font-size: 12.5px;
+  font-size: 13px;
 }
 button:hover:not(:disabled) {
   background: #234356;
@@ -241,7 +241,7 @@ nav {
   gap: 2px;
 }
 .nav-group-title {
-  font-size: 10.5px;
+  font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
   color: var(--muted);
@@ -253,8 +253,8 @@ nav {
 nav button {
   width: 100%;
   text-align: left;
-  padding: 4px 7px;
-  font-size: 12px;
+  padding: 5px 8px;
+  font-size: 13px;
   border-radius: 4px;
   border: 1px solid transparent;
   background: transparent;
@@ -275,7 +275,7 @@ nav button.selected {
   box-shadow: 0 0 8px var(--accent-glow);
 }
 .nav-count {
-  font-size: 10px;
+  font-size: 10.5px;
   color: var(--muted);
   background: #0d1a22;
   padding: 0 5px;
@@ -300,7 +300,7 @@ nav button.selected {
   flex-shrink: 0;
 }
 .records-header h2 {
-  font-size: 13.5px;
+  font-size: 14.5px;
   margin: 0 0 5px;
   font-weight: 700;
   color: var(--gold);
@@ -312,7 +312,7 @@ nav button.selected {
 .action-btn {
   flex: 1;
   padding: 4px 6px;
-  font-size: 11.5px;
+  font-size: 12px;
 }
 .search-box {
   padding: 5px 8px;
@@ -323,7 +323,7 @@ nav button.selected {
 .search-box input {
   width: 100%;
   padding: 5px 8px;
-  font-size: 12px;
+  font-size: 13px;
   background: #08141b;
   border: 1px solid #1e3646;
 }
@@ -339,7 +339,7 @@ nav button.selected {
   width: 100%;
   text-align: left;
   padding: 6px 9px;
-  font-size: 12px;
+  font-size: 13px;
   border: 1px solid #1e3646;
   border-radius: 4px;
   background: #142733;
@@ -372,7 +372,7 @@ nav button.selected {
   border-bottom: 1px solid var(--border);
 }
 .form-header h2 {
-  font-size: 16px;
+  font-size: 17px;
   color: #ffffff;
   margin: 0;
   display: flex;
@@ -380,7 +380,7 @@ nav button.selected {
   gap: 8px;
 }
 .record-id-badge {
-  font-size: 10.5px;
+  font-size: 11px;
   font-weight: normal;
   color: var(--muted);
   background: #0a1720;
@@ -392,7 +392,7 @@ nav button.selected {
 
 .hint {
   color: var(--muted);
-  font-size: 12px;
+  font-size: 13px;
   line-height: 1.5;
   margin-bottom: 10px;
   background: #0f1e28;
@@ -408,7 +408,7 @@ nav button.selected {
 }
 .field > label {
   font-weight: 600;
-  font-size: 12.5px;
+  font-size: 13.5px;
   color: #d8eaef;
 }
 .field input, .field select, .field textarea {
@@ -417,7 +417,7 @@ nav button.selected {
   background: #0a1720;
   border: 1px solid #254252;
   padding: 5px 8px;
-  font-size: 12.5px;
+  font-size: 13px;
 }
 .field input:focus, .field select:focus, .field textarea:focus {
   border-color: var(--accent);
@@ -439,7 +439,7 @@ fieldset {
 legend {
   color: var(--gold);
   font-weight: 600;
-  font-size: 12px;
+  font-size: 13px;
   padding: 0 6px;
 }
 
