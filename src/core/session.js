@@ -3,10 +3,10 @@ import {clone,createProfile,random,stat,sources,capacity,enrichedCard} from './m
 import {context} from './effects.js';
 import {raftCommand,endVoyage,expansionOptions,upgradeOptions} from './raft.js';
 import {createNodePool,candidates,submitVoyage,chooseOption,shopBuy,enchantCard} from './nodes.js';
-import {enterBattle,attack,endBattleTurn,retreat,battleSupply} from './battle.js';
+import {enterBattle,attack,endBattleTurn,retreat} from './battle.js';
 import {profileCommand} from './profile.js';
 export {createProfile};
-const ACTIVE_PHASES=['navigation','action','discard','battle','battleDiscard'];
+const ACTIVE_PHASES=['navigation','action','discard','battle'];
 const RAFT_COMMANDS=['Craft','ExpandRaft','RepairCell','UpgradeEquipment','ActivateEquipment','FuelLamp'];
 export class GameSession{
  constructor(profile=createProfile()){this.profile=clone(profile);this.state=null;}
@@ -27,7 +27,7 @@ export class GameSession{
    if(s.buffs.some(b=>!BUFFS[b.definitionId]||!Number.isFinite(b.remaining)||b.remaining<0)||s.relicIds.some(id=>!RELICS[id]))throw new Error('效果存档损坏');
    for(const key of ['hp','hunger','hydration','sanity'])if(!Number.isFinite(s.current[key])||s.current[key]<0)throw new Error('数值存档损坏');
    if(!Number.isFinite(s.ap)||s.ap<0||!Number.isFinite(s.battleAp)||s.battleAp<0||!Array.isArray(s.candidates)||!Array.isArray(s.tools)||!s.flags||!Number.isSafeInteger(s.nextId))throw new Error('阶段存档损坏');
-   if(['battle','battleDiscard'].includes(s.phase)&&(!s.battle||!Array.isArray(s.battle.enemies)||!Number.isSafeInteger(s.battle.round)))throw new Error('战斗存档损坏');
+   if(s.phase==='battle'&&(!s.battle||!Array.isArray(s.battle.enemies)||!Number.isSafeInteger(s.battle.round)))throw new Error('战斗存档损坏');
   }
   const game=new GameSession(p);game.state=s;return game;
  }
@@ -73,8 +73,8 @@ export class GameSession{
    case 'EndVoyage':endVoyage(ctx);break;
    case 'EndBattleTurn':endBattleTurn(ctx);break;
    case 'Retreat':retreat(ctx);break;
-   case 'DiscardCards':{ctx.require(['discard','battleDiscard'].includes(s.phase),'仅在弃牌阶段弃牌');ctx.require(Array.isArray(cmd.cardIds)&&new Set(cmd.cardIds).size===cmd.cardIds.length&&cmd.cardIds.length>0,'选择不同的手牌');for(const id of cmd.cardIds){const card=ctx.card(id);ctx.require(CARDS[card.definitionId].kind!=='negative','负面牌必须花AP清除');if(CARDS[card.definitionId].traits?.includes('return')||card.enchant.includes('return')){ctx.log(CARDS[card.definitionId].name+' 回牌，不能通过弃置腾出容量','弃牌');continue;}ctx.remove(id);ctx.log('弃置 '+CARDS[card.definitionId].name,'弃牌');}break;}
-   case 'FinishDiscard':{ctx.require(['discard','battleDiscard'].includes(s.phase),'当前不是弃牌阶段');ctx.require(capacity(s)<=ctx.stat('handLimit'),'手牌仍然超限');if(s.phase==='battleDiscard'){s.phase='battle';s.battle.round++;battleSupply(ctx);}else if(s.voyage===s.length){ctx.finish(!s.flags.bossDefeated?'withdrawn':ctx.feature('trueEndingEligible')&&s.flags.readDiary?'true':'survived');}else{s.voyage++;s.node=null;s.phase='navigation';s.candidates=candidates(s);}break;}
+   case 'DiscardCards':{ctx.require(s.phase==='discard','仅在弃牌阶段弃牌');ctx.require(Array.isArray(cmd.cardIds)&&new Set(cmd.cardIds).size===cmd.cardIds.length&&cmd.cardIds.length>0,'选择不同的手牌');for(const id of cmd.cardIds){const card=ctx.card(id);ctx.require(CARDS[card.definitionId].kind!=='negative','负面牌必须花AP清除');if(CARDS[card.definitionId].traits?.includes('return')||card.enchant.includes('return')){ctx.log(CARDS[card.definitionId].name+' 回牌，不能通过弃置腾出容量','弃牌');continue;}ctx.remove(id);ctx.log('弃置 '+CARDS[card.definitionId].name,'弃牌');}break;}
+   case 'FinishDiscard':{ctx.require(s.phase==='discard','当前不是弃牌阶段');ctx.require(capacity(s)<=ctx.stat('handLimit'),'手牌仍然超限');if(s.voyage===s.length){ctx.finish(!s.flags.bossDefeated?'withdrawn':ctx.feature('trueEndingEligible')&&s.flags.readDiary?'true':'survived');}else{s.voyage++;s.node=null;s.phase='navigation';s.candidates=candidates(s);}break;}
    case 'EnchantCard':{ctx.require(s.phase==='action'&&s.pendingEnchant>0,'没有可领取的留存附魔');const card=enchantCard(ctx,cmd.cardId,cmd.enchant);p.legacyCards=[{definitionId:card.definitionId,enchant:clone(card.enchant)}];s.pendingEnchant--;break;}
    case 'AbandonRun':ctx.require(ACTIVE_PHASES.includes(s.phase),'当前没有进行中的航行');ctx.finish('abandon');break;
    default:throw new Error('未知操作：'+cmd.type);

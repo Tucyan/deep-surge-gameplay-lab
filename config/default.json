@@ -228,7 +228,7 @@
     },
     "CONFIG": {
       "schema": 1,
-      "contentVersion": "gameplay-experiment-v3",
+      "contentVersion": "gameplay-experiment-v4",
       "randomVersion": "xorshift32-v1",
       "minVoyages": 10,
       "maxVoyages": 15,

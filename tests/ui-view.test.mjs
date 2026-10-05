@@ -33,7 +33,7 @@ test('seed entry accepts the full unsigned range and rejects blank, fractional a
 test('only a discard phase under the hand limit can offer confirmation',()=>{
   assert.equal(canConfirmDiscard({phase:'discard',excess:1}),false);
   assert.equal(canConfirmDiscard({phase:'discard',excess:0}),true);
-  assert.equal(canConfirmDiscard({phase:'battleDiscard',excess:0}),true);
+  assert.equal(canConfirmDiscard({phase:'battleDiscard',excess:0}),false);
   assert.equal(canConfirmDiscard({phase:'action',excess:0}),false);
 });
 test('node trading costs no AP and guards actual coin/corpse quantities',()=>{

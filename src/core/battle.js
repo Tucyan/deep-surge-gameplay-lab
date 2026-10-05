@@ -1,5 +1,5 @@
 import {MONSTERS,EQUIPMENT,CARDS,CONFIG,ORIGINS,DIARIES,RELICS} from '../content/index.js';
-import {activeEquipment,capacity,discover} from './model.js';
+import {activeEquipment,discover} from './model.js';
 export function battleSupply(ctx){
  const {s}=ctx;s.battleAp=ctx.stat('battleAp');
  for(const u of activeEquipment(s)){const def=EQUIPMENT[u.definitionId];if(def.battleOutput)ctx.give(def.battleOutput,1,{battleOnly:true,source:u.instanceId,stackLimit:u.definitionId==='crossbow'?u.level:1,bonusDamage:u.definitionId==='spearRack'?u.level-1:0});}
@@ -38,7 +38,7 @@ export function endBattleTurn(ctx){
   const def=MONSTERS[enemy.definitionId];if(def.buff)ctx.buff(def.buff,'enemy');if(def.pollution&&s.battle.round%2===1)ctx.give('pollution',1,{battleOnly:true,source:enemy.instanceId});
  }
  if(s.battle.round>=7){ctx.change('hp',-2,'depth');if(!ctx.checkAlive())return;}
- if(capacity(s)>ctx.stat('handLimit'))s.phase='battleDiscard';else{s.battle.round++;battleSupply(ctx);}
+ s.battle.round++;battleSupply(ctx);
 }
 export function retreat(ctx){
  const {s}=ctx;ctx.require(s.phase==='battle'&&s.battle.round>=2,'第2战斗回合起才可撤退');

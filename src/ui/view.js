@@ -33,11 +33,17 @@ export function parseSeed(value) {
 }
 
 export function canConfirmDiscard(view) {
-  return ['discard','battleDiscard'].includes(view.phase) && (view.excess || 0)<=0;
+  return view.phase==='discard' && (view.excess || 0)<=0;
 }
 
-export function canPurchase(view,item,payment) {
-  if(view.phase!=='action' || view.node?.kind!=='shop' || view.node.resolved)return false;
+export function canUseProfileActions(view){return ['home','finished'].includes(view.phase);}
+
+export function purchaseStatus(view,item,payment) {
+  const currency=payment==='corpse'?'怪物尸体':'贝币';
+  const cost=payment==='corpse'?Math.ceil(item.price/2):item.price;
   const count=(view.hand || []).filter(c=>c.definitionId===payment).reduce((sum,c)=>sum+c.quantity,0);
-  return count >= (payment==='corpse'?Math.ceil(item.price/2):item.price);
+  const reason=!['coin','corpse'].includes(payment)?'请选择支付方式':view.phase!=='action'||view.node?.kind!=='shop'||view.node.resolved?'商店交易已关闭':item.relic&&(view.relics||[]).some(r=>r.id===item.relic)?'已拥有，不能重复购买':count<cost?`${currency}不足，还差 ${cost-count}`:'';
+  return {canBuy:!reason,reason,currency,cost,held:count};
 }
+
+export function canPurchase(view,item,payment){return purchaseStatus(view,item,payment).canBuy;}

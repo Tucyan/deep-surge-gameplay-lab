@@ -144,7 +144,7 @@ export function runBalanceGame({seed,originId='strong',strategy='events',profile
    if(v.battle.round>=2&&v.current.hp<=target.damage+(v.hand.some(c=>c.definitionId==='pollution')?2:0)+2&&v.current.hp>CONFIG.retreatDamage){act({type:'Retreat'});continue;}
    act({type:'EndBattleTurn'});continue;
   }
-  if(['discard','battleDiscard'].includes(v.phase)){
+  if(v.phase==='discard'){
    if(v.excess){
     const qty=counts(v.hand);
     const priority=c=>c.kind==='survival'?100:c.kind==='equipment'?80:c.definitionId==='coin'?70:c.definitionId==='corpse'?45:({wood:25,plastic:22,iron:18,rope:14,cloth:14}[c.definitionId]||10)-(qty[c.definitionId]||0)*3;

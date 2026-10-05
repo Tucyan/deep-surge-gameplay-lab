@@ -1,6 +1,6 @@
 import { GameSession } from '../core/session.js';
 import { CARDS, SPRING_POOL, EQUIPMENT, RECIPES, ORIGINS, RELICS, BUFFS, META_SHOP, TECH, NODES, MONSTERS, CONFIG, DIARIES, ENDINGS } from '../content/index.js';
-import { newestVoyageLogs, parseSeed, canConfirmDiscard, canPurchase, nodeOptionCost, treatmentCost } from './view.js';
+import { newestVoyageLogs, parseSeed, canConfirmDiscard, purchaseStatus, nodeOptionCost, treatmentCost, canUseProfileActions } from './view.js';
 import {loadPublishedConfig,loadAppliedConfig,saveAppliedConfig,getActiveConfig,clearAppliedConfig} from '../config/store.js';
 import {parseConfig} from '../config/validation.js';
 
@@ -38,7 +38,7 @@ function initialSave() {
     const raw = localStorage.getItem(STORAGE_KEY); if (!raw) return;
     session = GameSession.restore(JSON.parse(raw)); view=session.getView();
     saveAvailable=true; restoredRun = !['home','finished'].includes(view.phase);
-    if(['discard','battleDiscard'].includes(view.phase) && canConfirmDiscard(view)){
+    if(view.phase==='discard' && canConfirmDiscard(view)){
       try {
         const autoRes=session.execute({type:'FinishDiscard'});
         if(autoRes.ok){ view=autoRes.view || session.getView(); persist(); }
@@ -52,7 +52,7 @@ function run(command) {
   catch(e) { toast(`操作失败：${e.message}`,true); return false; }
   if (!result.ok) { toast((result.errors || ['暂时无法执行']).join('；'),true); return false; }
   view=result.view || session.getView(); persist();
-  if(['discard','battleDiscard'].includes(view.phase) && canConfirmDiscard(view)){
+  if(view.phase==='discard' && canConfirmDiscard(view)){
     try {
       const autoRes=session.execute({type:'FinishDiscard'});
       if(autoRes.ok){
@@ -71,14 +71,16 @@ function run(command) {
   discarded=new Set([...discarded].filter(id=>ids.has(id)));
   const targets=[...(view.cells || []).map(c=>c.id),...(view.cells || []).map(c=>c.equipment?.instanceId),...(view.battle?.enemies || []).map(e=>e.instanceId)];
   if (!targets.includes(selectedTarget)) selectedTarget=null;
-  if (!['discard','battleDiscard'].includes(view.phase)) discarded.clear();
+  if (view.phase!=='discard') discarded.clear();
+  if(modal?.type==='nodeShop'&&view.node?.resolved)modal=null;
+  if(command.type==='SubmitVoyage'&&view.node?.kind==='shop'&&!view.node.resolved)modal={type:'nodeShop'};
   restoredRun=false; render(); return true;
 }
 const card = () => (view.hand || []).find(c=>c.instanceId===selectedCard);
 const cell = () => (view.cells || []).find(c=>c.id===selectedTarget || c.equipment?.instanceId===selectedTarget);
 const equipment = () => cell()?.equipment;
-const isBattle = () => ['battle','battleDiscard'].includes(view.phase);
-const isDiscard = () => ['discard','battleDiscard'].includes(view.phase);
+const isBattle = () => view.phase==='battle';
+const isDiscard = () => view.phase==='discard';
 const canAct = () => view.phase==='action';
 const enchantable = () => ['combat','survival','action'].includes(card()?.kind);
 function canPlaySelected(){
@@ -119,7 +121,7 @@ function stage() {
     content=`<p class="muted">选择下一处停靠点，出发后领取三张涌泉资源。池内节点允许重复；选中只消耗一份，未选份数保留，已选类型降低抽取权重。本层普通池剩余 ${view.nodePool.length} 份，初始为 ${CONFIG.nodePoolMultiplier} 倍普通航程。</p><div class="node-grid">${(view.candidates || []).map(n=>`<button class="node-card candidate ${selectedCandidate===n.id?'selected':''}" data-action="candidate" ${tagged(n.id)}><span class="node-name">${esc(n.name)}</span><span class="badge ${n.kind==='battle'||n.kind==='boss'?'red':n.kind==='rest'?'gold':''}">${esc(nodeKind(n.kind))}</span><span class="card-description">${esc(n.description)}</span></button>`).join('')}</div>`;
     footer=button('启航','submitVoyage',!selectedCandidate,'primary');
   } else if (isBattle()) {
-    content=`<div class="row between"><h3>${esc(view.node?.name || (view.battle?.boss?'深海首领':'海上遭遇'))}</h3><span class="badge red">${view.battle?.ruin?'遗迹战斗':'战斗'} · ${view.battle?.enemies?.length || 0} 个目标</span></div><p class="muted">先选手牌，再选敌人或筏格。敌方意图在回合结束时生效。</p><div class="enemy-list">${(view.battle?.enemies || []).map((e,i)=>{const pct=Math.max(0,Math.min(100,Math.round((e.hp/e.maxHp)*100)));return `<button class="enemy-card ${selectedTarget===e.instanceId?'selected':''}" data-action="target" ${tagged(e.instanceId)} ${e.hp<=0?'disabled':''}><span class="row between"><strong>${esc(e.name)}</strong><small>目标 ${i+1}</small></span><div class="row between"><span>生命 ${e.hp} / ${e.maxHp}</span><small>${pct}%</small></div><div class="enemy-hp-track"><div class="enemy-hp-fill" style="width:${pct}%"></div></div><span class="enemy-intent">意图：${esc(intent(e.intent))}</span>${e.damage!=null?`<small class="muted">单次伤害 ${esc(e.damage)}</small>`:''}</button>`;}).join('')}</div>${view.phase==='battleDiscard'?discardPrompt():''}`;
+    content=`<div class="row between"><h3>${esc(view.node?.name || (view.battle?.boss?'深海首领':'海上遭遇'))}</h3><span class="badge red">${view.battle?.ruin?'遗迹战斗':'战斗'} · ${view.battle?.enemies?.length || 0} 个目标</span></div><p class="muted">先选手牌，再选敌人或筏格。敌方意图在回合结束时生效。</p><div class="enemy-list">${(view.battle?.enemies || []).map((e,i)=>{const pct=Math.max(0,Math.min(100,Math.round((e.hp/e.maxHp)*100)));return `<button class="enemy-card ${selectedTarget===e.instanceId?'selected':''}" data-action="target" ${tagged(e.instanceId)} ${e.hp<=0?'disabled':''}><span class="row between"><strong>${esc(e.name)}</strong><small>目标 ${i+1}</small></span><div class="row between"><span>生命 ${e.hp} / ${e.maxHp}</span><small>${pct}%</small></div><div class="enemy-hp-track"><div class="enemy-hp-fill" style="width:${pct}%"></div></div><span class="enemy-intent">意图：${esc(intent(e.intent))}</span>${e.damage!=null?`<small class="muted">单次伤害 ${esc(e.damage)}</small>`:''}</button>`;}).join('')}</div>`;
     footer=button('结束战斗回合','endBattle',view.phase!=='battle','primary')+button('撤退','retreat',view.phase!=='battle','danger');
   } else if (view.phase==='discard') {
     content=discardPrompt(); footer=discardFooter();
@@ -128,21 +130,20 @@ function stage() {
   } else {
     const node=view.node;
     content=`<div class="node-card"><span class="node-name">${esc(node?.name || '航行准备')}</span><p class="card-description">${esc(node?.description || '检查物资、设备和筏格，再开始探索。')}</p><span class="muted">${node?.resolved?'节点已完成 · 点击结束本次航行后结算':'节点等待探索'}</span></div>${!node?.resolved && (node?.options || []).length?`<div class="node-grid">${node.options.map(o=>{const fee=nodeOptionCost(view,o);return `<div class="node-card"><strong>${esc(o.name)}</strong><p class="card-description">${esc(o.description)}</p><small>投入 ${esc(fee.summary)}</small>${fee.reason?`<small class="muted">${esc(fee.reason)}</small>`:''}${button('选择','option',!fee.canChoose,'',tagged(o.id))}</div>`;}).join('')}</div>`:''}${!node?.resolved && ['battle','ruin'].includes(node?.kind)?button('进入遭遇','enterNode',false,'primary'):''}`;
-    if(node?.kind==='shop' && !node.resolved)content+=`<div class="catalogue">${(view.shop || []).map(item=>`<div class="catalogue-item"><strong>${esc(item.name)}</strong><p class="card-description">${esc(item.description || '商人的货物')}</p><small>价格 ${item.price}</small><div class="row">${button('贝币购买','shopCoin',!canPurchase(view,item,'coin'),'',tagged(item.id))}${button('尸体交换','shopCorpse',!canPurchase(view,item,'corpse'),'',tagged(item.id))}</div></div>`).join('')}</div>`;
+    if(node?.kind==='shop' && !node.resolved)content= `<div class="node-card"><span class="node-name">${esc(node.name)}</span><p>${esc(node.description)}</p>${button('打开交易','nodeShop',false,'primary')}</div>`;
     if(view.ap===0)content+='<p class="notice">AP已用完，仍可使用淡水、食物等0 AP牌及免费操作。准备好后点击结束本次航行。</p>';
     footer=button('结束本次航行','endVoyage',!node?.resolved,'primary');
   }
-  if(view.phase==='battleDiscard') footer=discardFooter();
   return `<section class="panel stage-panel"><div class="panel-head"><h2>${isBattle()?'战场':view.phase==='navigation'?'航线':view.phase==='discard'?'整理行囊':'当前节点'}</h2>${canAct()?button('合成','craft',false,'quiet'):''}</div><div class="panel-body stage-body" id="stage-body">${content}</div><div class="stage-footer">${footer}</div></section>`;
 }
 function intent(value) { return typeof value==='string'?value:value?.description || value?.name || (value?JSON.stringify(value):'待定'); }
 function nodeKind(k) {return {combat:'⚔️ 战斗',battle:'⚔️ 战斗',event:'📜 事件',rest:'⛺ 休整',exchange:'🔄 交换',environment:'🌊 环境',camp:'⛺ 营地',ruin:'🏛️ 遗迹',shop:'🐙 交易',spring:'💧 涌泉',boss:'👁️ 首领',supply:'📦 补给',treasure:'💎 宝物'}[k] || k || '探索';}
 function discardPrompt() {
-  return `<div class="notice">${view.phase==='battleDiscard'?'战斗回合整理':'航行结束整理'}：容量 ${view.capacity ?? view.hand?.length ?? 0} / ${view.stats?.handLimit || 0}。${view.excess>0?`超出 ${view.excess} 张，请勾选丢弃（降至上限后自动确认推进）。`:'已满足容量限制，正在自动进入下一阶段…'}</div><p class="muted">点击手牌可选中；弃牌满足容量上限后将自动确认继续。负面牌需消耗 AP 清除。</p>`;
+  return `<div class="notice">航行结束整理：容量 ${view.capacity ?? view.hand?.length ?? 0} / ${view.stats?.handLimit || 0}。${view.excess>0?`超出 ${view.excess} 张，请勾选丢弃（降至上限后自动确认推进）。`:'已满足容量限制，正在自动进入下一阶段…'}</div><p class="muted">点击手牌可选中；弃牌满足容量上限后将自动确认继续。负面牌需消耗 AP 清除。</p>`;
 }
 function discardFooter(){
   const canDiscard = discarded.size > 0;
-  return button(`丢弃选中 (${discarded.size})`,'discard',!canDiscard,'primary')+(canConfirmDiscard(view)?button(view.phase==='battleDiscard'?'继续战斗':'确认整理','finishDiscard',false,'quiet'):'');
+  return button(`丢弃选中 (${discarded.size})`,'discard',!canDiscard,'primary')+(canConfirmDiscard(view)?button('确认整理','finishDiscard',false,'quiet'):'');
 }
 function hand() {
   const c=card();
@@ -213,8 +214,17 @@ function renderModal(){
     html=modalFrame('工具台 · 配方合成',`${invHtml}${gridHtml}`,'craft-modal');
   }
   if(modal.type==='inspect'){const c=card();html=modalFrame(c?.name || '手牌详情',c?`<p class="help-copy">${esc(c.description)}</p><p class="muted">${cardKind(c.kind)} · ${c.cost || 0} AP · 数量 ${c.quantity || 1}</p>${c.enchant?.length?`<p class="good">附魔：${c.enchant.map(enchantName).join('、')}</p>`:''}`:'<p>请先选择手牌。</p>',true);}
-  if(modal.type==='meta')html=modalFrame('海怪商店',`<p class="gold">涌潮点 ${view.profile?.points || 0}</p><div class="catalogue">${defs(META_SHOP).map(m=>{const n=view.profile?.purchases?.[m.id] || 0;return `<div class="catalogue-item"><strong>${esc(m.name)}</strong><p class="card-description">${esc(m.description)}</p><small>已购 ${n} / ${m.maxPurchases ?? '不限'}</small>${button(`${m.price} 点 · 购买`,'buyMeta',view.phase!=='home' || (view.profile?.points || 0)<m.price || n>=(m.maxPurchases ?? Infinity),'',tagged(m.id))}</div>`;}).join('')}</div>${view.phase!=='home'?'<p class="muted">结束当前航行后可购买局外成长。</p>':''}`);
-  if(modal.type==='tech')html=modalFrame('科技树',`<p class="gold">涌潮点 ${view.profile?.points || 0}</p><div class="catalogue">${defs(TECH).map(t=>{const got=view.profile?.tech?.includes(t.id);const prereq=(t.requires || []).every(id=>view.profile?.tech?.includes(id));return `<div class="catalogue-item ${got?'':'locked'}"><strong>${esc(t.name)}</strong><p class="card-description">${esc(t.description)}</p><small>前置：${t.requires?.length?t.requires.map(id=>esc(name(TECH,id))).join('、'):'无'}</small>${button(got?'已解锁':`${t.price} 点 · 解锁`,'unlockTech',view.phase!=='home' || got || !prereq || (view.profile?.points || 0)<t.price,'',tagged(t.id))}</div>`;}).join('')}</div>`);
+  if(modal.type==='nodeShop'){
+    const count=id=>(view.hand||[]).filter(c=>c.definitionId===id).reduce((n,c)=>n+c.quantity,0);
+    const goods=(view.shop||[]).map(item=>{
+      const coin=purchaseStatus(view,item,'coin'),corpse=purchaseStatus(view,item,'corpse');
+      return `<div class="catalogue-item"><strong>${esc(item.name)}</strong><p>${esc(item.description)}</p><small>${item.card?`获得手牌 ×1${CARDS[item.card]?.kind==='equipment'?'，需另行安装':''}`:'获得藏品，立即生效'} · 支付方式二选一</small><div class="row">${button(`贝币 ×${coin.cost} 购买`,'shopCoin',!coin.canBuy,'',tagged(item.id))}${button(`尸体 ×${corpse.cost} 交换`,'shopCorpse',!corpse.canBuy,'',tagged(item.id))}</div><small>${esc([coin.reason,corpse.reason].filter((r,i,a)=>r&&a.indexOf(r)===i).join('；'))}</small></div>`;
+    }).join('');
+    const options=(view.node?.options||[]).map(o=>{const fee=nodeOptionCost(view,o);return `<div class="row"><span>${esc(o.description)} · ${esc(fee.summary)}</span>${button(o.name,'option',!fee.canChoose,'',tagged(o.id))}</div>`;}).join('');
+    html=modalFrame('海怪商人 · 交易',`<p class="gold">持有贝币 ${count('coin')} · 怪物尸体 ${count('corpse')}</p><p>每次购买不消耗 AP。设备购买后放入手牌；手牌超限可继续交易，航行结束时再整理。关闭窗口可重新打开；选择「离开商店」后，本节点不可继续交易。</p>${modal.notice?`<p role="status" class="gold">${esc(modal.notice)}</p>`:''}<div class="catalogue">${goods}</div>${options}`);
+  }
+  if(modal.type==='meta')html=modalFrame('海怪商店',`<p class="gold">涌潮点 ${view.profile?.points || 0}</p><div class="catalogue">${defs(META_SHOP).map(m=>{const n=view.profile?.purchases?.[m.id] || 0;return `<div class="catalogue-item"><strong>${esc(m.name)}</strong><p class="card-description">${esc(m.description)}</p><small>已购 ${n} / ${m.maxPurchases ?? '不限'}</small>${button(`${m.price} 点 · 购买`,'buyMeta',!canUseProfileActions(view) || (view.profile?.points || 0)<m.price || n>=(m.maxPurchases ?? Infinity),'',tagged(m.id))}</div>`;}).join('')}</div>${!canUseProfileActions(view)?'<p class="muted">结束当前航行后可购买局外成长。</p>':''}`);
+  if(modal.type==='tech')html=modalFrame('科技树',`<p class="gold">涌潮点 ${view.profile?.points || 0}</p><div class="catalogue">${defs(TECH).map(t=>{const got=view.profile?.tech?.includes(t.id);const prereq=(t.requires || []).every(id=>view.profile?.tech?.includes(id));return `<div class="catalogue-item ${got?'':'locked'}"><strong>${esc(t.name)}</strong><p class="card-description">${esc(t.description)}</p><small>前置：${t.requires?.length?t.requires.map(id=>esc(name(TECH,id))).join('、'):'无'}</small>${button(got?'已解锁':`${t.price} 点 · 解锁`,'unlockTech',!canUseProfileActions(view) || got || !prereq || (view.profile?.points || 0)<t.price,'',tagged(t.id))}</div>`;}).join('')}</div>`);
   if(modal.type==='catalogue')html=modalFrame('航海图鉴',catalogue());
   if(modal.type==='expand')html=modalFrame('扩建木筏',`<p class="muted">选择扩建的位置；需要足够的材料与 AP。</p><div class="row">${(view.expansionOptions || []).map(p=>button(`位置 (${p.x}, ${p.z})`,'expandAt',!canAct(),' ',`data-x="${p.x}" data-z="${p.z}"`)).join('')}</div>`,true);
   if(modal.type==='upgrade')html=modalFrame('设备升级',`<p>目标：${esc(equipment()?.name || '未选择设备')}</p><p class="muted">选择可合并的设备材料。</p>${(view.upgradeOptions || []).filter(o=>o.targetId===equipment()?.instanceId).map(o=>button(o.label || o.materialId,'upgradeWith',!canAct(),'',tagged(o.materialId))).join('') || '<p class="empty">没有适合此设备的升级材料。</p>'}`,true);
@@ -261,7 +271,7 @@ document.addEventListener('click',e=>{
   if(a==='showHome'){closeModal();if(view.phase==='finished'){run({type:'ReturnHome'});return;}restoredRun=true;persist();render();return;}
   if(a==='abandon'){confirmAction('放弃航行','结束当前旅途并返回首页？',()=>run({type:'AbandonRun'}));return;}
   if(a==='returnHome'){run({type:'ReturnHome'});return;}
-  if(['help','meta','tech','catalogue','saveMenu','contentConfig','homeMenu','craft','inspect','expand','upgrade','enchant'].includes(a)){openModal(a);return;}
+  if(['nodeShop','help','meta','tech','catalogue','saveMenu','contentConfig','homeMenu','craft','inspect','expand','upgrade','enchant'].includes(a)){openModal(a);return;}
   if(a==='catalogueTab'){catalogueTab=id;renderModal();return;}
   if(a==='submitVoyage'){if(run({type:'SubmitVoyage',nodeId:selectedCandidate})){selectedCandidate=null;logScroll=0;}return;}
   if(a==='enterNode'){run({type:'EnterNode'});return;}
@@ -290,7 +300,13 @@ document.addEventListener('click',e=>{
   if(a==='buyMeta'){if(run({type:'BuyMeta',itemId:id}))toast('局外购买成功');return;}
   if(a==='unlockTech'){if(run({type:'UnlockTech',techId:id}))toast('科技已解锁');return;}
   if(a==='enchantReturn' || a==='enchantInstant'){const enchant=a==='enchantReturn'?'return':'instant';if(run(modal?.optionId?{type:'ChooseOption',optionId:modal.optionId,cardId:selectedCard,enchant}:{type:'EnchantCard',cardId:selectedCard,enchant}))closeModal();return;}
-  if(a==='shopCoin' || a==='shopCorpse'){run({type:'ShopBuy',itemId:id,payment:a==='shopCoin'?'coin':'corpse'});return;}
+  if(a==='shopCoin' || a==='shopCorpse'){
+    const item=view.shop.find(i=>i.id===id),payment=a==='shopCoin'?'coin':'corpse',fee=purchaseStatus(view,item,payment);
+    if(run({type:'ShopBuy',itemId:id,payment})){
+      modal.notice=`交易成功：支付${fee.currency} ×${fee.cost}，获得${item.name} ×1${item.card?'（已放入手牌）':'（已生效）'}；剩余${fee.currency} ${fee.held-fee.cost}。`;
+      renderModal();
+    }return;
+  }
   if(a==='export'){
     const blob=new Blob([JSON.stringify(session.serialize(),null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),anchor=document.createElement('a');
     anchor.href=url;anchor.download=`深涌-航行记录-${view.seed ?? '局外'}-${new Date().toISOString().slice(0,10)}.json`;anchor.click();setTimeout(()=>URL.revokeObjectURL(url),1000);toast('记录已导出');return;
