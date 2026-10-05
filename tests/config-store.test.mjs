@@ -70,12 +70,13 @@ test('内容表条目顺序变化不改变固定种子的节点候选',()=>{
 test('策划初始生命与普通行动牌效果在真实规则中生效',()=>{
   const config=getDefaultConfig();config.content.CONFIG.initial.hp=10;
   config.content.CARDS.restAction={name:'小憩',kind:'action',cost:1,description:'恢复精神。',effects:[{type:'ChangeCurrent',stat:'sanity',delta:5}]};
-  config.content.NODES.drift.options[0].effects=[{type:'GiveCard',id:'restAction'}];
+  for(const node of Object.values(config.content.NODES))for(const o of node.options||[])if(o.id==='leave')o.effects=[{type:'GiveCard',id:'restAction'}];
   try{
     applyConfig(config);const game=new GameSession();game.execute({type:'NewGame',originId:'strong',seed:245});
     assert.equal(game.getView().current.hp,20);
-    assert.equal(game.execute({type:'SubmitVoyage',nodeId:'drift'}).ok,true);
-    assert.equal(game.execute({type:'ChooseOption',optionId:'wood'}).ok,true);
+    const node=game.getView().candidates.find(n=>!['battle','ruin'].includes(n.kind));
+    assert.equal(game.execute({type:'SubmitVoyage',nodeId:node.id}).ok,true);
+    assert.equal(game.execute({type:'ChooseOption',optionId:'leave'}).ok,true);
     const action=game.getView().hand.find(c=>c.definitionId==='restAction');
     assert.equal(game.execute({type:'PlayCard',cardId:action.instanceId}).ok,true);
     assert.equal(game.getView().current.sanity,85);

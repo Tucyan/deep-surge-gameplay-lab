@@ -1,4 +1,4 @@
-export const CONFIG={schema:1,contentVersion:'gameplay-experiment-v1',randomVersion:'xorshift32-v1',minVoyages:10,maxVoyages:15,initial:{hp:30,hunger:40,hydration:40,sanity:80},base:{hpMax:30,hungerMax:100,hydrationMax:100,sanityMax:100,baseAp:3,battleAp:3,handLimit:10,damage:0},upgradeCost:1,upgradeMax:3,restRecovery:40,retreatDamage:4,xpPerLevel:5,bossXp:20,battleXp:5};
+export const CONFIG={schema:1,contentVersion:'gameplay-experiment-v3',randomVersion:'xorshift32-v1',minVoyages:10,maxVoyages:15,nodePoolMultiplier:2,initial:{hp:30,hunger:40,hydration:40,sanity:80},base:{hpMax:30,hungerMax:100,hydrationMax:100,sanityMax:100,baseAp:3,battleAp:3,handLimit:10,damage:0},upgradeCost:1,upgradeMax:3,restRecovery:40,retreatDamage:4,xpPerLevel:5,bossXp:20,battleXp:5};
 // These steps run once per voyage. Reorder here, never in the UI.
 export const VOYAGE_STEPS=['consume','lamp','survival','ageCells','produce','buffClock','discard'];
 export const VOYAGE_EFFECTS=[

@@ -1,8 +1,8 @@
-import {CARDS,EQUIPMENT,RECIPES,CONFIG,ORIGINS,RELICS,BUFFS,META_SHOP,TECH,SHOP} from '../content/index.js';
+import {CARDS,EQUIPMENT,RECIPES,CONFIG,ORIGINS,RELICS,BUFFS,META_SHOP,TECH,SHOP,NODES} from '../content/index.js';
 import {clone,createProfile,random,stat,sources,capacity,enrichedCard} from './model.js';
 import {context} from './effects.js';
 import {raftCommand,endVoyage,expansionOptions,upgradeOptions} from './raft.js';
-import {candidates,submitVoyage,chooseOption,shopBuy,enchantCard} from './nodes.js';
+import {createNodePool,candidates,submitVoyage,chooseOption,shopBuy,enchantCard} from './nodes.js';
 import {enterBattle,attack,endBattleTurn,retreat,battleSupply} from './battle.js';
 import {profileCommand} from './profile.js';
 export {createProfile};
@@ -20,6 +20,8 @@ export class GameSession{
   if(p.tech.some(id=>!TECH[id])||p.rareRelics.some(id=>RELICS[id]?.rarity!=='rare'))throw new Error('解锁存档损坏');
   if(s){
    if(![...ACTIVE_PHASES,'finished'].includes(s.phase)||!ORIGINS[s.originId]||!Number.isSafeInteger(s.voyage)||!Number.isSafeInteger(s.length)||s.length<CONFIG.minVoyages||s.length>CONFIG.maxVoyages||s.voyage<1||s.voyage>s.length||!Number.isSafeInteger(s.rng)||!Array.isArray(s.hand)||!Array.isArray(s.cells)||!Array.isArray(s.buffs)||!Array.isArray(s.relicIds)||!Array.isArray(s.log)||!s.current||!s.base||!s.bonuses)throw new Error('本局存档损坏');
+   if(!Array.isArray(s.nodePool)||s.nodePool.length>(s.length-1)*CONFIG.nodePoolMultiplier||s.nodePool.some(id=>id==='boss'||!Object.hasOwn(NODES,id)))throw new Error('节点池存档损坏');
+   if(!s.nodeVisits||typeof s.nodeVisits!=='object'||Array.isArray(s.nodeVisits)||Object.entries(s.nodeVisits).some(([id,n])=>!Object.hasOwn(NODES,id)||!Number.isSafeInteger(n)||n<1)||s.lastNodeId!==null&&(!Object.hasOwn(NODES,s.lastNodeId)||!s.nodeVisits[s.lastNodeId]))throw new Error('节点历史存档损坏');
    const ids=new Set();for(const card of s.hand){if(!CARDS[card.definitionId]||typeof card.instanceId!=='string'||ids.has(card.instanceId)||!Number.isSafeInteger(card.quantity)||card.quantity<1||!Array.isArray(card.enchant)||card.enchant.some(x=>!['instant','return'].includes(x)))throw new Error('手牌存档损坏');ids.add(card.instanceId);}
    for(const c of s.cells){if(!['intact','damaged','detached'].includes(c.state)||!Number.isInteger(c.x)||!Number.isInteger(c.z)||c.x<0||c.z<0||c.x>3||c.z>3||c.equipment&&(!EQUIPMENT[c.equipment.definitionId]||c.equipment.level<1||c.equipment.level>3))throw new Error('木筏存档损坏');}
    if(s.buffs.some(b=>!BUFFS[b.definitionId]||!Number.isFinite(b.remaining)||b.remaining<0)||s.relicIds.some(id=>!RELICS[id]))throw new Error('效果存档损坏');
@@ -50,14 +52,14 @@ export class GameSession{
  normalize(){if(!this.state)return;for(const k of ['hp','hunger','hydration','sanity'])this.state.current[k]=Math.min(this.state.current[k],stat(this.state,this.profile,k+'Max'));this.state.ap=Math.min(this.state.ap,stat(this.state,this.profile,'baseAp'));this.state.battleAp=Math.min(this.state.battleAp,stat(this.state,this.profile,'battleAp'));}
  newGame(command){
   if(this.state&&ACTIVE_PHASES.includes(this.state.phase))throw new Error('当前航行尚未结束');if(!ORIGINS[command.originId])throw new Error('选择一种出身');if(!Number.isSafeInteger(command.seed)||command.seed<0||command.seed>0xffffffff)throw new Error('种子须为0至4294967295的整数');
-  const p=this.profile;const s={phase:'navigation',seed:command.seed,rng:command.seed||0x9e3779b9,originId:command.originId,voyage:1,length:0,ap:0,battleAp:0,current:clone(CONFIG.initial),base:clone(CONFIG.base),bonuses:{},hand:[],tools:['handtool'],cells:[],buffs:[],relicIds:[],log:[],candidates:[],node:null,battle:null,flags:{},nextId:1,completedNodes:0,settledVoyage:0,level:1,xp:0,pendingEnchant:0,result:null,blessing:false};this.state=s;
+  const p=this.profile;const s={phase:'navigation',seed:command.seed,rng:command.seed||0x9e3779b9,originId:command.originId,voyage:1,length:0,ap:0,battleAp:0,current:clone(CONFIG.initial),base:clone(CONFIG.base),bonuses:{},hand:[],tools:['handtool'],cells:[],buffs:[],relicIds:[],log:[],candidates:[],node:null,battle:null,nodeVisits:{},nodePool:[],lastNodeId:null,flags:{},nextId:1,completedNodes:0,settledVoyage:0,level:1,xp:0,pendingEnchant:0,result:null,blessing:false};this.state=s;
   s.length=CONFIG.minVoyages+Math.floor(random(s)*(CONFIG.maxVoyages-CONFIG.minVoyages+1));s.current.hp=Math.max(1,Math.min(stat(s,p,'hpMax'),CONFIG.initial.hp+stat(s,p,'hpMax')-CONFIG.base.hpMax));
   for(let z=0;z<2;z++)for(let x=0;x<2;x++)s.cells.push({id:'cell-'+x+'-'+z,x,z,state:'intact',damagedAt:null,equipment:null});
   const ctx=context(s,p);ctx.give('punch');ctx.give('wood');ctx.give('plastic');ctx.give('iron');
   if(p.purchases.inheritance)ctx.give('coin',3);for(const card of p.legacyCards)ctx.give(card.definitionId,1,{enchant:clone(card.enchant),source:'legacy'});
   if(p.pending.supply>0){ctx.give('filter');p.pending.supply--;}
   if(p.pending.blessing>0){s.blessing=true;p.pending.blessing--;}
-  s.candidates=candidates(s);ctx.log('出身：'+ORIGINS[s.originId].name+'；本层 '+s.length+' 次航行','启航');
+  s.nodePool=createNodePool(s);s.candidates=candidates(s);ctx.log('出身：'+ORIGINS[s.originId].name+'；本层 '+s.length+' 次航行','启航');
  }
  handle(ctx,cmd){
   const {s,p}=ctx;if(s.phase==='finished')throw new Error('本局已结束，请返回主页');

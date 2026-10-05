@@ -10,6 +10,11 @@ import { CARDS, RECIPES, SPRING_POOL, NODES, ORIGINS, RELICS, META_SHOP, TECH } 
  */
 export function simulateSmartRun({ seed, originId = 'strong', profile = createProfile(), autoMeta = true }) {
   const g = new GameSession(profile);
+  // Paid events may be unavailable after preparing equipment; take the explicit leave option.
+  function chooseNode(command) {
+    if (g.preview(command).ok) return g.execute(command);
+    return g.execute({type:'ChooseOption',optionId:'leave'});
+  }
   const startRes = g.execute({ type: 'NewGame', seed, originId });
   if (!startRes.ok) throw new Error('Start failed: ' + startRes.errors.join('; '));
 
@@ -157,20 +162,20 @@ export function simulateSmartRun({ seed, originId = 'strong', profile = createPr
         }
         if (v.node.kind === 'supply') {
           const woodCount = v.hand.filter(c => c.definitionId === 'wood').reduce((s, c) => s + c.quantity, 0);
-          g.execute({ type: 'ChooseOption', optionId: woodCount < 3 ? 'wood' : 'metal' });
+          chooseNode({ type: 'ChooseOption', optionId: woodCount < 3 ? 'wood' : 'metal' });
           continue;
         }
         if (v.node.kind === 'rest') {
           const lowStats = v.current.hp <= v.stats.hpMax - 10 || v.current.hunger <= 60 || v.current.hydration <= 60 || v.current.sanity <= 60;
           const upgradeable = v.cells.find(c => c.state === 'intact' && c.equipment && c.equipment.level < 3);
           if (lowStats) {
-            g.execute({ type: 'ChooseOption', optionId: 'rest' });
+            chooseNode({ type: 'ChooseOption', optionId: 'rest' });
           } else if (upgradeable) {
-            g.execute({ type: 'ChooseOption', optionId: 'upgrade', equipmentId: upgradeable.equipment.instanceId });
+            chooseNode({ type: 'ChooseOption', optionId: 'upgrade', equipmentId: upgradeable.equipment.instanceId });
           } else {
             const punch = v.hand.find(c => c.definitionId === 'punch' && !c.enchant.includes('instant'));
-            if (punch) g.execute({ type: 'ChooseOption', optionId: 'enchant', cardId: punch.instanceId, enchant: 'instant' });
-            else g.execute({ type: 'ChooseOption', optionId: 'rest' });
+            if (punch) chooseNode({ type: 'ChooseOption', optionId: 'enchant', cardId: punch.instanceId, enchant: 'instant' });
+            else chooseNode({ type: 'ChooseOption', optionId: 'rest' });
           }
           continue;
         }
@@ -181,20 +186,20 @@ export function simulateSmartRun({ seed, originId = 'strong', profile = createPr
             if (coins >= item.price) { g.execute({ type: 'ShopBuy', itemId: item.id, payment: 'coin' }); break; }
             else if (corpses >= Math.ceil(item.price / 2)) { g.execute({ type: 'ShopBuy', itemId: item.id, payment: 'corpse' }); break; }
           }
-          g.execute({ type: 'ChooseOption', optionId: 'leave' });
+          chooseNode({ type: 'ChooseOption', optionId: 'leave' });
           continue;
         }
         if (v.node.kind === 'exchange') {
-          if (v.current.hp >= 25) g.execute({ type: 'ChooseOption', optionId: 'blood' });
-          else g.execute({ type: 'ChooseOption', optionId: 'leave' });
+          if (v.current.hp >= 25) chooseNode({ type: 'ChooseOption', optionId: 'blood' });
+          else chooseNode({ type: 'ChooseOption', optionId: 'leave' });
           continue;
         }
         if (v.node.kind === 'environment') {
-          g.execute({ type: 'ChooseOption', optionId: 'leave' });
+          chooseNode({ type: 'ChooseOption', optionId: 'leave' });
           continue;
         }
         if (v.node.options?.length) {
-          g.execute({ type: 'ChooseOption', optionId: v.node.options[0].id });
+          chooseNode({ type: 'ChooseOption', optionId: v.node.options[0].id });
           continue;
         }
       }

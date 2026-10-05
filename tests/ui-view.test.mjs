@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { newestVoyageLogs, parseSeed, canConfirmDiscard, canPurchase } from '../src/ui/view.js';
+import {NODES} from '../src/content/index.js';
 import { GameSession } from '../src/core/session.js';
 
 test('log presentation puts the newest voyage, branch and message first without mutating the save',()=>{
@@ -12,8 +13,11 @@ test('log presentation puts the newest voyage, branch and message first without 
   assert.equal(JSON.stringify(source),before);
 });
 test('session logs retain the core newest-first message order when rendered',()=>{
-  const game=new GameSession();
+  let game=new GameSession();
   assert.equal(game.execute({type:'NewGame',seed:0,originId:'strong'}).ok,true);
+  const data=game.serialize();data.state.nodePool=['drift'];data.state.candidates=[structuredClone(NODES.drift)];
+  for(const id of ['rope','cloth'])data.state.hand.push({instanceId:'test-'+id,definitionId:id,quantity:1,enchant:[],stackLimit:1});
+  game=GameSession.restore(data);
   assert.equal(game.execute({type:'SubmitVoyage',nodeId:'drift'}).ok,true);
   assert.equal(game.execute({type:'ChooseOption',optionId:'wood'}).ok,true);
   const actual=game.getView().log;

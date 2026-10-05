@@ -1,0 +1,230 @@
+{
+  "date": "2026-10-05",
+  "totalRuns": 1440,
+  "baseline": [
+    {
+      "strategy": "events",
+      "runs": 144,
+      "bossWins": 21,
+      "bossWinPercent": 14.6,
+      "endings": {
+        "survived": 21,
+        "mad": 41,
+        "dead": 81,
+        "withdrawn": 1
+      },
+      "meanVoyages": 9.4,
+      "meanEventCardsConsumed": 5.74,
+      "meanCraftCardsConsumed": 7.6,
+      "meanDiscardedCards": 10,
+      "meanSurvivalDamage": 28.71,
+      "meanBattleDamage": 9.95,
+      "eventArrivals": 799,
+      "payableEventArrivals": 538,
+      "payableArrivalPercent": 67.3,
+      "leftDespiteAffordable": 194,
+      "lengths": [
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "failedCommands": 0
+    },
+    {
+      "strategy": "build",
+      "runs": 144,
+      "bossWins": 22,
+      "bossWinPercent": 15.3,
+      "endings": {
+        "survived": 22,
+        "dead": 101,
+        "mad": 21
+      },
+      "meanVoyages": 9.12,
+      "meanEventCardsConsumed": 3.92,
+      "meanCraftCardsConsumed": 8.73,
+      "meanDiscardedCards": 9.03,
+      "meanSurvivalDamage": 30.06,
+      "meanBattleDamage": 8.17,
+      "eventArrivals": 776,
+      "payableEventArrivals": 524,
+      "payableArrivalPercent": 67.5,
+      "leftDespiteAffordable": 291,
+      "lengths": [
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "failedCommands": 0
+    },
+    {
+      "strategy": "skip-events",
+      "runs": 144,
+      "bossWins": 7,
+      "bossWinPercent": 4.9,
+      "endings": {
+        "survived": 7,
+        "dead": 96,
+        "mad": 41
+      },
+      "meanVoyages": 7.9,
+      "meanEventCardsConsumed": 0,
+      "meanCraftCardsConsumed": 7.58,
+      "meanDiscardedCards": 7.97,
+      "meanSurvivalDamage": 26.24,
+      "meanBattleDamage": 4.7,
+      "eventArrivals": 743,
+      "payableEventArrivals": 543,
+      "payableArrivalPercent": 73.1,
+      "leftDespiteAffordable": 543,
+      "lengths": [
+        10,
+        11,
+        12,
+        13,
+        14,
+        15
+      ],
+      "failedCommands": 0
+    }
+  ],
+  "details": [
+    {
+      "strategy": "events",
+      "runs": 144,
+      "meanEventRewards": 3.49,
+      "meanNetEventConsumption": 2.25,
+      "discardedByCard": {
+        "cloth": 427,
+        "rope": 376,
+        "iron": 358,
+        "plastic": 231,
+        "wood": 48
+      },
+      "selections": {
+        "trader:leave": 180,
+        "storm:leave": 198,
+        "camp:rest": 114,
+        "drift:wood": 111,
+        "drift:provisions": 65,
+        "camp:upgrade": 34,
+        "jelly:leave": 152,
+        "drift:leave": 73,
+        "storm:secure": 20,
+        "camp:leave": 32
+      },
+      "arrivals": {
+        "trader": 180,
+        "storm": 218,
+        "camp": 180,
+        "drift": 249,
+        "jelly": 152
+      },
+      "eventPaymentsByNode": {
+        "trader": 0,
+        "storm": 80,
+        "camp": 330,
+        "drift": 417,
+        "jelly": 0
+      },
+      "wins": 21,
+      "winnersAtZeroHungerOrHydration": 21,
+      "winnersWithMedkit": 19,
+      "meanForcedOrdinaryBattles": 1.95,
+      "meanImmediateRepeats": 1.38,
+      "discardedPerVisitedVoyage": 1.06
+    },
+    {
+      "strategy": "build",
+      "runs": 144,
+      "meanEventRewards": 2.59,
+      "meanNetEventConsumption": 1.33,
+      "discardedByCard": {
+        "cloth": 428,
+        "rope": 298,
+        "iron": 280,
+        "plastic": 236,
+        "wood": 58
+      },
+      "selections": {
+        "trader:leave": 170,
+        "storm:leave": 206,
+        "camp:leave": 65,
+        "drift:wood": 119,
+        "drift:leave": 138,
+        "camp:upgrade": 83,
+        "jelly:leave": 134,
+        "storm:secure": 7,
+        "camp:rest": 23,
+        "drift:provisions": 1
+      },
+      "arrivals": {
+        "trader": 170,
+        "storm": 213,
+        "camp": 171,
+        "drift": 258,
+        "jelly": 134
+      },
+      "eventPaymentsByNode": {
+        "trader": 0,
+        "storm": 28,
+        "camp": 295,
+        "drift": 241,
+        "jelly": 0
+      },
+      "wins": 22,
+      "winnersAtZeroHungerOrHydration": 22,
+      "winnersWithMedkit": 21,
+      "meanForcedOrdinaryBattles": 1.69,
+      "meanImmediateRepeats": 1.18,
+      "discardedPerVisitedVoyage": 0.99
+    },
+    {
+      "strategy": "skip-events",
+      "runs": 144,
+      "meanEventRewards": 0,
+      "meanNetEventConsumption": 0,
+      "discardedByCard": {
+        "cloth": 435,
+        "rope": 360,
+        "iron": 225,
+        "plastic": 114,
+        "wood": 14
+      },
+      "selections": {
+        "trader:leave": 169,
+        "storm:leave": 210,
+        "camp:leave": 171,
+        "drift:leave": 238,
+        "jelly:leave": 124
+      },
+      "arrivals": {
+        "trader": 169,
+        "storm": 210,
+        "camp": 171,
+        "drift": 238,
+        "jelly": 124
+      },
+      "eventPaymentsByNode": {
+        "trader": 0,
+        "storm": 0,
+        "camp": 0,
+        "drift": 0,
+        "jelly": 0
+      },
+      "wins": 7,
+      "winnersAtZeroHungerOrHydration": 7,
+      "winnersWithMedkit": 7,
+      "meanForcedOrdinaryBattles": 1.05,
+      "meanImmediateRepeats": 0.7,
+      "discardedPerVisitedVoyage": 1.01
+    }
+  ],
+  "defaultConfigurationUnchanged": true
+}

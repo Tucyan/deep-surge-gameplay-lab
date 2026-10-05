@@ -2,7 +2,7 @@ export const EQUIPMENT={
  lamp:{name:'灯',description:'燃烧时抵消精神耗损；燃料越多燃烧越久。',fuel:true},
  filter:{name:'滤水器',description:'自动生产淡水。',output:'water',intervals:[2,1,1],amounts:[1,1,2]},
  planter:{name:'土盆',description:'自动生产食用植物。',output:'food',intervals:[2,1,1],amounts:[1,1,2]},
- medkit:{name:'包扎包',description:'主动治疗；1 AP。',healing:[4,7,10]},
+ medkit:{name:'包扎包',description:'主动治疗；1 AP与布条×1，恢复8/12/16生命。',healing:[8,12,16],activationCosts:{cloth:1}},
  crossbow:{name:'弓弩',description:'战斗每回合产箭；升级增加堆叠容量。',battleOutput:'arrow'},
  spearRack:{name:'矛架',description:'战斗每回合产矛；升级提高伤害。',battleOutput:'spear'}
 };

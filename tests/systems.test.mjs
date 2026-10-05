@@ -24,9 +24,9 @@ test('最后1AP耗尽后仍可连续喝水和吃食物，手动结束只结算�
  ok(g,{type:'ExpandRaft',x:2,z:0});
  assert.equal(g.getView().ap,0);assert.equal(g.getView().phase,'action');
  const before=g.serialize();assert.equal(g.execute({type:'Craft',recipeId:'filter'}).ok,false);assert.deepEqual(g.serialize(),before);
- ok(g,{type:'PlayCard',cardId:'drink'});assert.equal(g.getView().current.hydration,65);assert.equal(g.getView().phase,'action');
- ok(g,{type:'PlayCard',cardId:'eat'});assert.equal(g.getView().current.hunger,65);assert.equal(g.getView().ap,0);
- ok(g,{type:'EndVoyage'});assert.equal(g.getView().phase,'discard');assert.equal(g.getView().current.hydration,35);assert.equal(g.getView().current.hunger,35);
+ ok(g,{type:'PlayCard',cardId:'drink'});assert.equal(g.getView().current.hydration,80);assert.equal(g.getView().phase,'action');
+ ok(g,{type:'PlayCard',cardId:'eat'});assert.equal(g.getView().current.hunger,80);assert.equal(g.getView().ap,0);
+ ok(g,{type:'EndVoyage'});assert.equal(g.getView().phase,'discard');assert.equal(g.getView().current.hydration,50);assert.equal(g.getView().current.hunger,50);
  const ended=g.serialize();assert.equal(g.execute({type:'EndVoyage'}).ok,false);assert.deepEqual(g.serialize(),ended);
 });
 test('安装需要设备手牌；二合一升级释放材料设备、拆除消耗拆除牌',()=>{
@@ -53,7 +53,7 @@ test('负面藏品影响基础能力；上限加成不自动治疗',()=>{
  const g=fixture(s=>{s.relicIds=['guardian','curse'];s.current.hp=20;});assert.equal(g.getView().stats.hpMax,45);assert.equal(g.getView().current.hp,20);assert.equal(g.getView().stats.baseAp,2);assert.equal(g.getView().stats.damage,2);
 });
 test('归零代价致死后，水母不会重掷或奖励',()=>{
- const g=fixture(s=>{s.current.hp=5;s.node={...structuredClone(NODES.jelly),resolved:false};});const rng=g.serialize().state.rng;ok(g,{type:'ChooseOption',optionId:'blood'});assert.equal(g.getView().phase,'finished');assert.equal(g.getView().result.id,'dead');assert.equal(g.serialize().state.rng,rng);assert.equal(g.getView().relics.filter(r=>r.rarity==='normal').length,0);
+ const g=fixture(s=>{s.current.hp=5;s.hand.push(card('blood-cloth','cloth'));s.node={...structuredClone(NODES.jelly),resolved:false};});const rng=g.serialize().state.rng;ok(g,{type:'ChooseOption',optionId:'blood'});assert.equal(g.getView().phase,'finished');assert.equal(g.getView().result.id,'dead');assert.equal(g.serialize().state.rng,rng);assert.equal(g.getView().relics.filter(r=>r.rarity==='normal').length,0);
 });
 test('遗迹失败恢复入场HP而不是直接败亡，无战利品',()=>{
  const g=fixture(s=>{s.current.hp=2;s.node={...structuredClone(NODES.ruin),resolved:false};});ok(g,{type:'EnterNode'});ok(g,{type:'EndBattleTurn'});assert.equal(g.getView().phase,'action');assert.equal(g.getView().current.hp,2);assert.equal(g.getView().hand.some(c=>c.definitionId==='corpse'),false);
@@ -65,7 +65,7 @@ test('存档跨JSON往返可恢复叠放货币，错误版本拒绝',()=>{
  const p=createProfile();p.purchases.inheritance=1;const g=game(32,'strong',p);const restored=GameSession.restore(JSON.parse(JSON.stringify(g.serialize())));assert.deepEqual(restored.getView(),g.getView());const data=g.serialize();data.schema=99;assert.throws(()=>GameSession.restore(data));
 });
 test('取消预览不会提前执行水母随机兑换',()=>{
- const g=fixture(s=>s.node={...structuredClone(NODES.jelly),resolved:false});const before=g.serialize();assert.equal(g.preview({type:'ChooseOption',optionId:'blood'}).ok,true);assert.deepEqual(g.serialize(),before);
+ const g=fixture(s=>{s.node={...structuredClone(NODES.jelly),resolved:false};s.hand.push(card('blood-cloth','cloth'));});const before=g.serialize();assert.equal(g.preview({type:'ChooseOption',optionId:'blood'}).ok,true);assert.deepEqual(g.serialize(),before);
 });
 test('回牌附魔作用于行动牌；藏品概率读取内容定义',()=>{
  const g=fixture(s=>{s.hand.push(card('repair','repair',{enchant:['return']}));s.cells[0].state='damaged';s.cells[0].damagedAt=1;});ok(g,{type:'PlayCard',cardId:'repair',targetId:'cell-0-0'});assert.ok(g.getView().hand.some(c=>c.instanceId==='repair'));

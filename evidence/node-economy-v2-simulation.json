@@ -1,0 +1,174 @@
+[
+  {
+    "seed": 1,
+    "result": "survived",
+    "phase": "finished",
+    "voyage": 10,
+    "length": 10,
+    "turns": 140,
+    "remainingPool": 0,
+    "visits": {
+      "battle": 3,
+      "camp": 2,
+      "jellyBattle": 2,
+      "ruin": 1,
+      "jelly": 1,
+      "boss": 1
+    }
+  },
+  {
+    "seed": 2,
+    "result": "dead",
+    "phase": "finished",
+    "voyage": 9,
+    "length": 10,
+    "turns": 91,
+    "remainingPool": 0,
+    "visits": {
+      "battle": 1,
+      "camp": 2,
+      "crabBattle": 3,
+      "trader": 2,
+      "drift": 1
+    }
+  },
+  {
+    "seed": 3,
+    "result": "dead",
+    "phase": "finished",
+    "voyage": 9,
+    "length": 10,
+    "turns": 94,
+    "remainingPool": 0,
+    "visits": {
+      "drift": 1,
+      "battle": 1,
+      "camp": 1,
+      "crabBattle": 2,
+      "jelly": 1,
+      "trader": 1,
+      "storm": 1,
+      "ruin": 1
+    }
+  },
+  {
+    "seed": 4,
+    "result": "withdrawn",
+    "phase": "finished",
+    "voyage": 10,
+    "length": 10,
+    "turns": 127,
+    "remainingPool": 0,
+    "visits": {
+      "drift": 3,
+      "crabBattle": 1,
+      "trader": 1,
+      "battle": 1,
+      "storm": 2,
+      "ruin": 1,
+      "boss": 1
+    }
+  },
+  {
+    "seed": 5,
+    "result": "dead",
+    "phase": "finished",
+    "voyage": 8,
+    "length": 10,
+    "turns": 83,
+    "remainingPool": 1,
+    "visits": {
+      "crabBattle": 3,
+      "battle": 1,
+      "trader": 1,
+      "jelly": 1,
+      "storm": 2
+    }
+  },
+  {
+    "seed": 6,
+    "result": "dead",
+    "phase": "finished",
+    "voyage": 9,
+    "length": 10,
+    "turns": 92,
+    "remainingPool": 0,
+    "visits": {
+      "ruin": 1,
+      "camp": 4,
+      "battle": 1,
+      "jellyBattle": 1,
+      "jelly": 1,
+      "crabBattle": 1
+    }
+  },
+  {
+    "seed": 7,
+    "result": "mad",
+    "phase": "finished",
+    "voyage": 6,
+    "length": 10,
+    "turns": 48,
+    "remainingPool": 3,
+    "visits": {
+      "battle": 2,
+      "drift": 1,
+      "camp": 1,
+      "trader": 1,
+      "jelly": 1
+    }
+  },
+  {
+    "seed": 8,
+    "result": "dead",
+    "phase": "finished",
+    "voyage": 9,
+    "length": 10,
+    "turns": 97,
+    "remainingPool": 0,
+    "visits": {
+      "battle": 1,
+      "camp": 1,
+      "jellyBattle": 2,
+      "trader": 1,
+      "drift": 2,
+      "storm": 1,
+      "ruin": 1
+    }
+  },
+  {
+    "seed": 9,
+    "result": "dead",
+    "phase": "finished",
+    "voyage": 9,
+    "length": 10,
+    "turns": 68,
+    "remainingPool": 0,
+    "visits": {
+      "crabBattle": 1,
+      "camp": 1,
+      "jelly": 2,
+      "storm": 3,
+      "ruin": 1,
+      "jellyBattle": 1
+    }
+  },
+  {
+    "seed": 10,
+    "result": "dead",
+    "phase": "finished",
+    "voyage": 10,
+    "length": 10,
+    "turns": 79,
+    "remainingPool": 0,
+    "visits": {
+      "drift": 1,
+      "jellyBattle": 1,
+      "camp": 2,
+      "battle": 1,
+      "trader": 2,
+      "jelly": 2,
+      "boss": 1
+    }
+  }
+]

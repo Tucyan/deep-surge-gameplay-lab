@@ -15,7 +15,7 @@ export function prepareRecord(table,record,{copy=false,nextOptionId=()=>'',id}={
  if(table==='CARDS')next=normalizeCard(next,copy&&next.kind==='currency'?'resource':next.kind);
  if(table==='NODES'&&copy){delete next.boss;next.options?.forEach(o=>{o.id=nextOptionId();});}
  if(table==='EQUIPMENT'){
-  delete next.fuel;delete next.healing;
+  delete next.fuel;delete next.healing;delete next.activationCosts;
   if(!next.output&&!next.battleOutput)Object.assign(next,{output:'water',intervals:[2,1,1],amounts:[1,1,2]});
  }
  if(Object.hasOwn(next,'id')&&id)next.id=id;

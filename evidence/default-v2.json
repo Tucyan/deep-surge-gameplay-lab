@@ -102,12 +102,12 @@
         "name": "淡水",
         "kind": "survival",
         "cost": 0,
-        "description": "水分+40，瞬发。",
+        "description": "水分+25，瞬发。",
         "effects": [
           {
             "type": "ChangeCurrent",
             "stat": "hydration",
-            "delta": 40
+            "delta": 25
           }
         ]
       },
@@ -115,12 +115,12 @@
         "name": "食用植物",
         "kind": "survival",
         "cost": 0,
-        "description": "饱食+40，瞬发。",
+        "description": "饱食+25，瞬发。",
         "effects": [
           {
             "type": "ChangeCurrent",
             "stat": "hunger",
-            "delta": 40
+            "delta": 25
           }
         ]
       },
@@ -197,7 +197,7 @@
         "name": "包扎包",
         "kind": "equipment",
         "cost": 1,
-        "description": "安装后花1 AP与布条×1恢复生命8，高等级治疗更多。"
+        "description": "安装后花1 AP恢复生命4，高等级治疗更多。"
       },
       "crossbow": {
         "name": "弓弩",
@@ -228,11 +228,10 @@
     },
     "CONFIG": {
       "schema": 1,
-      "contentVersion": "gameplay-experiment-v3",
+      "contentVersion": "gameplay-experiment-v2",
       "randomVersion": "xorshift32-v1",
       "minVoyages": 10,
       "maxVoyages": 15,
-      "nodePoolMultiplier": 2,
       "initial": {
         "hp": 30,
         "hunger": 40,
@@ -338,15 +337,12 @@
       },
       "medkit": {
         "name": "包扎包",
-        "description": "主动治疗；1 AP与布条×1，恢复8/12/16生命。",
+        "description": "主动治疗；1 AP。",
         "healing": [
-          8,
-          12,
-          16
-        ],
-        "activationCosts": {
-          "cloth": 1
-        }
+          4,
+          7,
+          10
+        ]
       },
       "crossbow": {
         "name": "弓弩",
@@ -519,7 +515,7 @@
           {
             "id": "provisions",
             "name": "修复密封补给箱",
-            "description": "投入废铁、绳索、布条各1和1 AP，获得淡水、食物各1。",
+            "description": "投入木头×2、塑料×1和1 AP，获得淡水、食物各1。",
             "effects": [
               {
                 "type": "GiveCard",
@@ -532,9 +528,8 @@
             ],
             "cost": 1,
             "cardCosts": {
-              "iron": 1,
-              "rope": 1,
-              "cloth": 1
+              "wood": 2,
+              "plastic": 1
             }
           },
           {
@@ -554,28 +549,28 @@
         "options": [
           {
             "id": "rest",
-            "name": "包扎补给休整",
-            "description": "投入布条×2和1 AP；生命+15，饱食、水分、精神各+40，获得休整余裕。",
+            "name": "添柴包扎休整",
+            "description": "投入木头、布条各1和1 AP；四项生存数值各恢复25，获得休整余裕。",
             "effects": [
               {
                 "type": "ChangeCurrent",
                 "stat": "hp",
-                "delta": 15
+                "delta": 25
               },
               {
                 "type": "ChangeCurrent",
                 "stat": "hunger",
-                "delta": 40
+                "delta": 25
               },
               {
                 "type": "ChangeCurrent",
                 "stat": "hydration",
-                "delta": 40
+                "delta": 25
               },
               {
                 "type": "ChangeCurrent",
                 "stat": "sanity",
-                "delta": 40
+                "delta": 25
               },
               {
                 "type": "AddBuff",
@@ -584,7 +579,8 @@
             ],
             "cost": 1,
             "cardCosts": {
-              "cloth": 2
+              "wood": 1,
+              "cloth": 1
             }
           },
           {
@@ -706,7 +702,7 @@
           {
             "id": "secure",
             "name": "搭浮架回收补给",
-            "description": "投入废铁、绳索、布条各1和1 AP；无额外筏损，获得淡水、食物各1，精神恢复20。",
+            "description": "投入木头×2、绳索×1、塑料×1和1 AP；无额外筏损，获得淡水、食物各1，精神恢复10。",
             "effects": [
               {
                 "type": "GiveCard",
@@ -719,14 +715,14 @@
               {
                 "type": "ChangeCurrent",
                 "stat": "sanity",
-                "delta": 20
+                "delta": 10
               }
             ],
             "cost": 1,
             "cardCosts": {
-              "iron": 1,
+              "wood": 2,
               "rope": 1,
-              "cloth": 1
+              "plastic": 1
             }
           },
           {
