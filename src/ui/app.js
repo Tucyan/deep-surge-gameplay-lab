@@ -1,12 +1,12 @@
 import { GameSession } from '../core/session.js';
 import { CARDS, SPRING_POOL, EQUIPMENT, RECIPES, ORIGINS, RELICS, BUFFS, META_SHOP, TECH, NODES, MONSTERS, CONFIG, DIARIES, ENDINGS } from '../content/index.js';
-import { newestVoyageLogs, parseSeed, canConfirmDiscard, purchaseStatus, nodeOptionCost, treatmentCost, canUseProfileActions } from './view.js';
+import { newestVoyageLogs, parseSeed, canConfirmDiscard, purchaseStatus, nodeOptionCost, treatmentCost, canUseProfileActions, candidatePresentation, layerProgress, currentNodeOption, navigationActionStatus } from './view.js';
 import {loadPublishedConfig,loadAppliedConfig,saveAppliedConfig,getActiveConfig,clearAppliedConfig} from '../config/store.js';
 import {parseConfig} from '../config/validation.js';
 
 const publishedConfig=await loadPublishedConfig();
 const appliedConfig=loadAppliedConfig();
-let configWarning=[...(!publishedConfig.ok?publishedConfig.errors:[]),...(!appliedConfig.ok?appliedConfig.errors:[])].map(e=>e.message).join('；');
+let configWarning=[!publishedConfig.ok?'发布配置无法使用，已回退内置规则。':'',!appliedConfig.ok?'浏览器中的旧配置不适用于当前规则，已使用当前默认配置；原配置仍保留，可在策划工具中检查。':''].filter(Boolean).join(' ');
 const STORAGE_KEY = `deep-surge-gameplay-lab-save-v1-${CONFIG.contentVersion}`;
 const editorUrl=location.pathname.startsWith('/deep-surge-lab/')?'/deep-surge-editor/':'./editor/';
 const $ = (s) => document.querySelector(s);
@@ -19,6 +19,7 @@ const tagged = (id,key='id') => `data-${key}="${esc(id)}"`;
 let session = new GameSession();
 let view = session.getView();
 let selectedCard = null, selectedTarget = null, selectedCandidate = null;
+let selectedAltarRelic=null, protectedCardId=null;
 let discarded = new Set(), modal = null, catalogueTab = 'cards', toastTimer;
 let saveAvailable = false, saveFailure = '', restoredRun = false;
 let homeSeed = String(Math.floor(Math.random()*2147483647)), homeOrigin = defs(ORIGINS)[0]?.id || '';
@@ -52,6 +53,7 @@ function run(command) {
   catch(e) { toast(`操作失败：${e.message}`,true); return false; }
   if (!result.ok) { toast((result.errors || ['暂时无法执行']).join('；'),true); return false; }
   view=result.view || session.getView(); persist();
+  if(command.type==='SubmitVoyage' || command.type==='NewGame'){selectedAltarRelic=null;protectedCardId=null;}
   if(view.phase==='discard' && canConfirmDiscard(view)){
     try {
       const autoRes=session.execute({type:'FinishDiscard'});
@@ -81,9 +83,10 @@ const cell = () => (view.cells || []).find(c=>c.id===selectedTarget || c.equipme
 const equipment = () => cell()?.equipment;
 const isBattle = () => view.phase==='battle';
 const isDiscard = () => view.phase==='discard';
-const canAct = () => view.phase==='action';
+const canAct = () => view.phase==='action'&&!view.pendingRelic;
 const enchantable = () => ['combat','survival','action'].includes(card()?.kind);
 function canPlaySelected(){
+  if(view.pendingRelic)return false;
   const c=card();if(!c)return false;
   if((isBattle()?view.battleAp:view.ap)<c.cost)return false;
   if(canAct())return ['survival','equipment','action'].includes(c.kind);
@@ -92,7 +95,7 @@ function canPlaySelected(){
 }
 
 function header(home=false) {
-  return `<header class="topbar"><div><div class="brand">深涌 <span class="badge">玩法实验</span></div><div class="subtitle">${home?'平衡试测 · 每次航行都留下新的线索':`第 ${view.voyage || 0} / ${view.length || CONFIG?.voyages || '—'} 次航行 · ${isBattle()?`战斗第 ${view.battle?.round || 1} 回合`:{navigation:'选择航线',action:'节点行动',discard:'整理行囊',finished:'航行结束'}[view.phase] || '航行准备'}`}</div></div><div class="row">${!home?`<span class="badge">${isBattle()?'战斗 AP':'AP'} ${isBattle()?view.battleAp:view.ap ?? 0}</span><span class="badge">等级 ${view.level || 1} · 经验 ${view.xp || 0}</span>`:''}${saveFailure?`<span class="save-warning">${esc(saveFailure)}</span>`:''}${button('图鉴','catalogue',false,'quiet')}${button('记录','saveMenu',false,'quiet')}${button('玩法说明','help',false,'quiet')}${button('玩法配置','contentConfig',false,'quiet')}<a class="badge" href="${editorUrl}" target="_blank" rel="noopener">策划工具 ↗</a>${!home?button('返回首页','homeMenu',false,'quiet'):''}</div></header>`;
+  return `<header class="topbar"><div><div class="brand">深涌 <span class="badge">玩法实验</span></div><div class="subtitle">${home?'平衡试测 · 每次航行都留下新的线索':`${esc(layerProgress(view))} · ${isBattle()?`战斗第 ${view.battle?.round || 1} 回合`:{navigation:'选择航线',action:'节点行动',discard:'整理行囊',finished:'航行结束'}[view.phase] || '航行准备'}`}</div></div><div class="row">${!home?`<span class="badge">${isBattle()?'战斗 AP':'AP'} ${isBattle()?view.battleAp:view.ap ?? 0}</span><span class="badge">等级 ${view.level || 1} · 经验 ${view.xp || 0}</span>`:''}${saveFailure?`<span class="save-warning">${esc(saveFailure)}</span>`:''}${button('图鉴','catalogue',false,'quiet')}${button('记录','saveMenu',false,'quiet')}${button('玩法说明','help',false,'quiet')}${button('玩法配置','contentConfig',false,'quiet')}<a class="badge" href="${editorUrl}" target="_blank" rel="noopener">策划工具 ↗</a>${!home?button('返回首页','homeMenu',false,'quiet'):''}</div></header>`;
 }
 function home() {
   const active=!['home','finished'].includes(view.phase);
@@ -118,7 +121,7 @@ function log() {
 function stage() {
   let content='', footer='';
   if (view.phase==='navigation') {
-    content=`<p class="muted">选择下一处停靠点，出发后领取三张涌泉资源。池内节点允许重复；选中只消耗一份，未选份数保留，已选类型降低抽取权重。本层普通池剩余 ${view.nodePool.length} 份，初始为 ${CONFIG.nodePoolMultiplier} 倍普通航程。</p><div class="node-grid">${(view.candidates || []).map(n=>`<button class="node-card candidate ${selectedCandidate===n.id?'selected':''}" data-action="candidate" ${tagged(n.id)}><span class="node-name">${esc(n.name)}</span><span class="badge ${n.kind==='battle'||n.kind==='boss'?'red':n.kind==='rest'?'gold':''}">${esc(nodeKind(n.kind))}</span><span class="card-description">${esc(n.description)}</span></button>`).join('')}</div>`;
+    content=navigationCandidates();
     footer=button('启航','submitVoyage',!selectedCandidate,'primary');
   } else if (isBattle()) {
     content=`<div class="row between"><h3>${esc(view.node?.name || (view.battle?.boss?'深海首领':'海上遭遇'))}</h3><span class="badge red">${view.battle?.ruin?'遗迹战斗':'战斗'} · ${view.battle?.enemies?.length || 0} 个目标</span></div><p class="muted">先选手牌，再选敌人或筏格。敌方意图在回合结束时生效。</p><div class="enemy-list">${(view.battle?.enemies || []).map((e,i)=>{const pct=Math.max(0,Math.min(100,Math.round((e.hp/e.maxHp)*100)));return `<button class="enemy-card ${selectedTarget===e.instanceId?'selected':''}" data-action="target" ${tagged(e.instanceId)} ${e.hp<=0?'disabled':''}><span class="row between"><strong>${esc(e.name)}</strong><small>目标 ${i+1}</small></span><div class="row between"><span>生命 ${e.hp} / ${e.maxHp}</span><small>${pct}%</small></div><div class="enemy-hp-track"><div class="enemy-hp-fill" style="width:${pct}%"></div></div><span class="enemy-intent">意图：${esc(intent(e.intent))}</span>${e.damage!=null?`<small class="muted">单次伤害 ${esc(e.damage)}</small>`:''}</button>`;}).join('')}</div>`;
@@ -129,15 +132,32 @@ function stage() {
     content=`<div class="node-card"><span class="node-name">${esc(view.result?.name || '航行结束')}</span><p>${esc(view.result?.description || '')}</p><p class="gold">获得涌潮点 ${view.result?.points || 0}</p></div><p class="muted">记录已经保存。回到首页，查看图鉴与局外成长。</p>`;footer=button('回到首页','returnHome',false,'primary');
   } else {
     const node=view.node;
-    content=`<div class="node-card"><span class="node-name">${esc(node?.name || '航行准备')}</span><p class="card-description">${esc(node?.description || '检查物资、设备和筏格，再开始探索。')}</p><span class="muted">${node?.resolved?'节点已完成 · 点击结束本次航行后结算':'节点等待探索'}</span></div>${!node?.resolved && (node?.options || []).length?`<div class="node-grid">${node.options.map(o=>{const fee=nodeOptionCost(view,o);return `<div class="node-card"><strong>${esc(o.name)}</strong><p class="card-description">${esc(o.description)}</p><small>投入 ${esc(fee.summary)}</small>${fee.reason?`<small class="muted">${esc(fee.reason)}</small>`:''}${button('选择','option',!fee.canChoose,'',tagged(o.id))}</div>`;}).join('')}</div>`:''}${!node?.resolved && ['battle','ruin'].includes(node?.kind)?button('进入遭遇','enterNode',false,'primary'):''}`;
+    content=`<div class="node-card"><span class="node-name">${esc(node?.name || '航行准备')}</span><p class="card-description">${esc(node?.description || '检查物资、设备和筏格，再开始探索。')}</p><span class="muted">${node?.resolved?'节点已完成 · 点击结束本次航行后结算':'节点等待探索'}</span></div>${!node?.resolved && (node?.options || []).length?`<div class="node-grid">${node.options.map(o=>{const fee=nodeOptionCost(view,o,protectedCardId),needsRelic=!!view.node?.altarChoices?.length&&!!(o.randomCardCost||o.detachCell||o.statCosts?.hp);return `<div class="node-card"><strong>${esc(o.name)}</strong><p class="card-description">${esc(o.description)}</p><small>投入 ${esc(fee.summary)}</small>${fee.reason?`<small class="muted">${esc(fee.reason)}</small>`:''}${fee.probability!=null?`<small>实际成功概率 ${Math.round(fee.probability*100)}%</small>`:''}${fee.risk?`<small class="risk-copy">${esc(fee.risk)}</small>`:''}${needsRelic&&!selectedAltarRelic?'<small>请先选择藏品</small>':''}${button('选择','option',!fee.canChoose||(needsRelic&&!selectedAltarRelic),'',tagged(o.id))}</div>`;}).join('')}</div>`:''}${!node?.resolved && ['battle','ruin'].includes(node?.kind)?button('进入遭遇','enterNode',false,'primary'):''}`;
     if(node?.kind==='shop' && !node.resolved)content= `<div class="node-card"><span class="node-name">${esc(node.name)}</span><p>${esc(node.description)}</p>${button('打开交易','nodeShop',false,'primary')}</div>`;
     if(view.ap===0)content+='<p class="notice">AP已用完，仍可使用淡水、食物等0 AP牌及免费操作。准备好后点击结束本次航行。</p>';
     footer=button('结束本次航行','endVoyage',!node?.resolved,'primary');
   }
-  return `<section class="panel stage-panel"><div class="panel-head"><h2>${isBattle()?'战场':view.phase==='navigation'?'航线':view.phase==='discard'?'整理行囊':'当前节点'}</h2>${canAct()?button('合成','craft',false,'quiet'):''}</div><div class="panel-body stage-body" id="stage-body">${content}</div><div class="stage-footer">${footer}</div></section>`;
+  if(view.phase==='action'&&!view.node?.resolved&&view.node?.altarChoices?.length)content=altarChoices()+content;
+  if(view.sanityForecast!=null&&!view.pendingRelic)content+=`<p class="muted">预计本轮结算后理智：${esc(typeof view.sanityForecast==='object'?view.sanityForecast.value:view.sanityForecast)}（按当前燃灯、设备和航行状态计算）</p>`;
+  if(view.pendingRelic){content=pendingRelicChoices();footer='';}
+  return `<section class="panel stage-panel"><div class="panel-head"><h2>${isBattle()?'战场':view.phase==='navigation'?'航线':view.phase==='discard'?'整理行囊':'当前节点'}</h2>${canAct()?button('合成','craft',!!view.pendingRelic,'quiet'):''}</div><div class="panel-body stage-body" id="stage-body">${content}</div><div class="stage-footer">${footer}</div></section>`;
 }
 function intent(value) { return typeof value==='string'?value:value?.description || value?.name || (value?JSON.stringify(value):'待定'); }
-function nodeKind(k) {return {combat:'⚔️ 战斗',battle:'⚔️ 战斗',event:'📜 事件',rest:'⛺ 休整',exchange:'🔄 交换',environment:'🌊 环境',camp:'⛺ 营地',ruin:'🏛️ 遗迹',shop:'🐙 交易',spring:'💧 涌泉',boss:'👁️ 首领',supply:'📦 补给',treasure:'💎 宝物'}[k] || k || '探索';}
+function navigationCandidates(){
+ const candidates=(view.candidates||[]).map(candidate=>{
+  const n=candidatePresentation(candidate),hidden=candidate.visibility&&candidate.visibility!=='full'&&!candidate.revealed;
+  return `<article class="node-card candidate ${selectedCandidate===n.id?'selected':''}">${button(n.name,'candidate',false,'node-name',tagged(n.id))}<span class="badge">${esc(nodeKind(n.kind))}</span><p class="card-description">${esc(n.description)}</p>${n.opportunitySummary?`<p class="opportunity-summary">${esc(n.opportunitySummary)}</p>`:''}${n.options.map(o=>{const s=candidate.optionStatus?.[o.id];return `<small class="option-preview">${esc(o.name)} · ${esc(s?.summary || '')}${s?.reason?` · ${esc(s.reason)}`:''}${s?.probability!=null?` · ${Math.round(s.probability*100)}%`:''}</small>`;}).join('')}${hidden?`<div class="row">${['sanity','relic'].map(method=>{const s=navigationActionStatus(view,'scout',method);return button(method==='sanity'?'侦察 · 理智8':'潮纹镜片侦察','scout',!s.canChoose,'quiet',`${tagged(n.id)} data-method="${method}" title="${esc(s.reason || s.summary)}"`);}).join('')}</div>`:''}</article>`;
+ }).join('');
+ const fix=view.navigationActions?.fixHeading;
+ return `<p class="muted">本轮涌泉已领取，请按实际手牌选择停靠点。费用和目标以当前库存为准，基地 AP 在启航时刷新。本层普通池剩余 ${view.nodePoolCount ?? '—'} 份；本层末站为首领。</p><div class="node-grid">${candidates}</div>${fix?`<div class="navigation-controls"><p>混乱可能改变实际到达点；固定航向仅保护本次启航。</p><div class="row">${['wood','relic'].map(method=>{const s=navigationActionStatus(view,'fixHeading',method);return button(method==='wood'?'固定航向 · 木头1':'定向骨针','fixHeading',!s.canChoose,'',`data-method="${method}" title="${esc(s.reason || s.summary)}"`);}).join('')}</div></div>`:''}`;
+}
+function altarChoices(){
+ const node=view.node,choices=node?.altarChoices||[],sacrifices=node?.sacrificeCandidates||[],cells=node?.detachableCells||[];
+ return `<section class="altar-offer"><h3>先选择藏品，再决定支付方式</h3><div class="node-grid">${choices.map(r=>`<article class="node-card ${selectedAltarRelic===r.id?'selected':''}"><strong>${esc(r.name)}</strong><p>${esc(r.description)}</p>${r.drawback?`<p class="risk-copy">代价：${esc(r.drawback===true?'含有负面效果，具体代价见上方藏品说明。':r.drawback)}</p>`:''}${button(selectedAltarRelic===r.id?'已选定':'选定藏品','altarRelic',false,'',tagged(r.id))}</article>`).join('')}</div><p class="risk-copy">行囊献祭随机失去3份实体卡单位；鲜血支付后至少保留1生命；筏身献祭立即脱落外围格，并毁掉格上设备。</p><details><summary>查看可能损失</summary><p>合格手牌：${sacrifices.map(c=>`${esc(c.name)} ×${c.quantity || 1}`).join('、') || '无'}</p><p>可脱落筏格：${cells.map(c=>`${esc(c.id)}${c.equipment?`（${esc(c.equipment.name)} Lv.${c.equipment.level || 1}）`:''}`).join('、') || '无'}。在位 ${view.cells?.filter(c=>c.state!=='detached').length || 0} 格。</p></details>${(view.relicUsage?.protect?.remaining || 0)>0?`<label>记名绳结 · 剩余${view.relicUsage.protect.remaining}次 · 可保护一份卡牌<select id="protected-card"><option value="">不保护</option>${sacrifices.map(c=>`<option value="${esc(c.instanceId)}" ${protectedCardId===c.instanceId?'selected':''}>${esc(c.name)} ×${c.quantity || 1}（仅保护一份）</option>`).join('')}</select></label>`:''}</section>`;
+}
+function pendingRelicChoices(){return `<h3>藏品奖励 · 接受前查看代价</h3><p class="muted">拒绝将结束本次奖励机会，不重新抽取。先处理此奖励，再继续行动。</p><div class="node-grid">${(view.pendingRelic?.choices||[]).map(r=>`<article class="node-card"><strong>${esc(r.name)}</strong><p>${esc(r.description)}</p>${r.drawback?`<p class="risk-copy">代价：${esc(r.drawback===true?'含有负面效果，具体代价见上方藏品说明。':r.drawback)}</p>`:''}${button('接受藏品','claimRelic',false,'primary',tagged(r.id))}</article>`).join('')}</div>${button('拒绝本次奖励','declineRelic',false,'quiet')}`;}
+function relicChargeLabel(id){const u=view.relicUsage||{},value=id==='tideLens'?u.scout?.charges:id==='headingNeedle'?u.heading?.remaining:id==='namedKnot'?u.protect?.remaining:null;return value==null?'':` · 剩余 ${value} 次`;}
+function nodeKind(k) {return {unknown:'❔ 未知',altar:'🔱 祭坛',combat:'⚔️ 战斗',battle:'⚔️ 战斗',event:'📜 事件',rest:'⛺ 休整',exchange:'🔄 交换',environment:'🌊 环境',camp:'⛺ 营地',ruin:'🏛️ 遗迹',shop:'🐙 交易',spring:'💧 涌泉',boss:'👁️ 首领',supply:'📦 补给',treasure:'💎 宝物'}[k] || k || '探索';}
 function discardPrompt() {
   return `<div class="notice">航行结束整理：容量 ${view.capacity ?? view.hand?.length ?? 0} / ${view.stats?.handLimit || 0}。${view.excess>0?`超出 ${view.excess} 张，请勾选丢弃（降至上限后自动确认推进）。`:'已满足容量限制，正在自动进入下一阶段…'}</div><p class="muted">点击手牌可选中；弃牌满足容量上限后将自动确认继续。负面牌需消耗 AP 清除。</p>`;
 }
@@ -185,7 +205,7 @@ function raft() {
   const selected=cell(), unit=equipment();
   return `<section class="panel raft-panel"><div class="panel-head"><h2>木筏</h2><small>${cells.filter(c=>c.state!=='detached').length} 格${isBattle()?' · 战斗中只读':''}</small></div><div class="panel-body" id="raft-body"><div class="raft-board" style="grid-template-columns:repeat(${width},minmax(0,1fr))">${tiles}</div><div class="raft-legend">绿色描边：已选 · 红褐：破损 · 虚线：脱落</div>${selected?`<div class="selection-detail"><strong>${esc(selected.id)} · ${selected.state==='intact'?'完好':selected.state==='damaged'?'破损':'脱落'}</strong>${unit?`<p>${esc(unit.name)} · Lv.${unit.level || 1} · 燃料 ${unit.fuel ?? 0} · 生产进度 ${unit.progress ?? 0}</p>`:'<p class="muted">此格没有设备</p>'}</div>`:''}</div><div class="stage-footer">${button('➕ 扩建','expand',!canAct() || !view.expansionOptions?.length)}${button('🔨 修补','repair',!canAct() || !selected || selected.state!=='damaged')}${button('⭐ 升级','upgrade',!canAct() || !unit)}${button('🩹 治疗 · '+treatmentCost(view,unit).summary,'activate',!canAct() || selected?.state!=='intact' || !treatmentCost(view,unit).canChoose)}${button('📦 合成','craft',!canAct())}</div></section>`;
 }
-function buffs(){return `<section class="panel buff-panel"><div class="panel-head"><h2>状态与藏品</h2><small>${view.buffs?.length || 0} 个状态</small></div><div class="panel-body"><div class="buff-list">${(view.buffs || []).map(b=>`<span class="buff ${b.polarity==='negative'?'negative':''}" title="${esc(b.description)}">${esc(b.name)}${b.remaining!=null?` · ${b.remaining} ${b.clock==='battle'?'回合':'轮'}`:''}</span>`).join('')}${(view.relics || []).map(r=>`<span class="buff gold" title="${esc(r.description)}">◆ ${esc(r.name)}</span>`).join('') || ''}</div>${!view.buffs?.length && !view.relics?.length?'<small class="muted">暂时没有状态或藏品</small>':''}</div></section>`;}
+function buffs(){return `<section class="panel buff-panel"><div class="panel-head"><h2>状态与藏品</h2><small>${view.buffs?.length || 0} 个状态</small></div><div class="panel-body"><div class="buff-list">${(view.buffs || []).map(b=>`<span class="buff ${b.polarity==='negative'?'negative':''}" title="${esc(b.description)}">${esc(b.name)}${b.remaining!=null?` · ${b.remaining} ${b.clock==='battle'?'回合':'次航行'}${b.activeFrom>view.voyage?' · 下轮生效':''}`:''}</span>`).join('')}${(view.relics || []).map(r=>`<span class="buff gold" title="${esc(r.description)}">◆ ${esc(r.name)}${relicChargeLabel(r.id)}</span>`).join('') || ''}</div>${!view.buffs?.length && !view.relics?.length?'<small class="muted">暂时没有状态或藏品</small>':''}</div></section>`;}
 function game(){return `<main class="screen game-screen">${header()}${meters()}<div class="game-body">${log()}${stage()}${raft()}${buffs()}${hand()}</div></main>`;}
 
 function render() {
@@ -210,7 +230,7 @@ function renderModal(){
     const MAT_ICONS={wood:'🪵',iron:'🔩',plastic:'🧴',cloth:'🧵',rope:'🪢'};
     const matCount=defId=>(view.hand||[]).filter(c=>c.definitionId===defId).reduce((s,c)=>s+(c.quantity||1),0);
     const invHtml=`<div class="craft-inv-bar"><div class="craft-inv-title"><span>🎒 材料库存</span><span class="craft-ap-badge ${view.ap>0?'good':'warn'}">⚡ 当前 AP: ${view.ap??0}</span></div><div class="craft-inv-mats">${['wood','iron','plastic','cloth','rope'].map(m=>{const count=matCount(m);return `<span class="inv-mat ${count>0?'has':'zero'}" title="${esc(CARDS[m]?.name)}">${MAT_ICONS[m]} ${esc(CARDS[m]?.name)} <strong>${count}</strong></span>`;}).join('')}</div></div>`;
-    const gridHtml=`<div class="craft-grid">${defs(RECIPES).map(r=>{const a=view.recipeAvailability?.[r.id];const cardDef=CARDS[r.output]||{};const icon=RECIPE_ICONS[r.id]||'⚙️';const canCraft=canAct()&&a?.canCraft;const isLocked=r.id==='spearRack'&&!view.profile?.tech?.includes('spear');const ings=entries(r.ingredients).map(([id,needed])=>{const have=matCount(id);const ok=have>=needed;return `<span class="craft-ing ${ok?'ok':'miss'}">${MAT_ICONS[id]||''} ${esc(name(CARDS,id))} ${have}/${needed}</span>`;}).join('');return `<div class="craft-card ${canCraft?'craftable':''} ${isLocked?'locked':''}"><div class="craft-card-head"><div class="craft-card-title"><span class="craft-card-icon">${icon}</span><strong>${esc(cardDef.name||r.name)}</strong></div><span class="craft-cost-badge">${r.cost??1} AP</span></div><p class="craft-card-desc">${esc(cardDef.description||'合成可用物资')}</p><div class="craft-card-ings">${ings}</div><div class="craft-card-foot">${button(canCraft?'🔨 合成':a?.reason||'不可合成','craftRecipe',!canCraft,`btn-craft ${canCraft?'primary':''}`,tagged(r.id))}</div></div>`;}).join('')}</div>`;
+    const gridHtml=`<div class="craft-grid">${defs(RECIPES).map(r=>{const a=view.recipeAvailability?.[r.id];const cardDef=CARDS[r.output]||{};const icon=RECIPE_ICONS[r.id]||'⚙️';const canCraft=canAct()&&a?.canCraft;const isLocked=r.id==='spearRack'&&!view.profile?.tech?.includes('spear');const ings=entries(r.ingredients).map(([id,needed])=>{const have=matCount(id);const ok=have>=needed;return `<span class="craft-ing ${ok?'ok':'miss'}">${MAT_ICONS[id]||''} ${esc(name(CARDS,id))} ${have}/${needed}</span>`;}).join('');return `<div class="craft-card ${canCraft?'craftable':''} ${isLocked?'locked':''}"><div class="craft-card-head"><div class="craft-card-title"><span class="craft-card-icon">${icon}</span><strong>${esc(cardDef.name||r.name)}</strong></div><span class="craft-cost-badge">${a?.cost??r.cost??1} AP</span></div><p class="craft-card-desc">${esc(cardDef.description||'合成可用物资')}</p><div class="craft-card-ings">${ings}</div><div class="craft-card-foot">${button(canCraft?'🔨 合成':a?.reason||'不可合成','craftRecipe',!canCraft,`btn-craft ${canCraft?'primary':''}`,tagged(r.id))}</div></div>`;}).join('')}</div>`;
     html=modalFrame('工具台 · 配方合成',`${invHtml}${gridHtml}`,'craft-modal');
   }
   if(modal.type==='inspect'){const c=card();html=modalFrame(c?.name || '手牌详情',c?`<p class="help-copy">${esc(c.description)}</p><p class="muted">${cardKind(c.kind)} · ${c.cost || 0} AP · 数量 ${c.quantity || 1}</p>${c.enchant?.length?`<p class="good">附魔：${c.enchant.map(enchantName).join('、')}</p>`:''}`:'<p>请先选择手牌。</p>',true);}
@@ -234,7 +254,7 @@ function renderModal(){
   if(modal.type==='homeMenu')html=modalFrame('航行菜单',`<p class="muted">${saveFailure?'航行记录保存失败，请导出备份。':'当前航行已经记录，可回到首页后继续。'}</p><div class="row">${saveFailure?button('导出记录','export'):''}${button('回到首页','showHome')}${button('放弃本次航行','abandon',view.phase==='finished','danger')}</div>`,true);
   if(modal.type==='exitFallback')html=modalFrame('退出航行',`<p class="help-copy">${saveFailure?'记录尚未成功保存，请先导出备份。':'航行记录已保存。'}浏览器若未关闭此页面，可直接关闭标签页，或返回首页。</p><div class="row">${saveFailure?button('导出记录','export'):''}${button('返回首页','showHome')}</div>`,true);
   if(modal.type==='confirm')html=modalFrame(modal.title,`<p class="help-copy">${esc(modal.message)}</p><div class="row">${button('确认','confirm',false,'primary')}${button('取消','close')}</div>`,true);
-  if(modal.type==='help')html=modalFrame('航行指南',`<div class="help-copy"><p>① 首页选择出身与种子，开始新航行；有进行中的记录时可继续。</p><p>② 导航阶段选择节点并启航。补给进入手牌，行动阶段可使用物资、安装设备、合成、修补或进入战斗。</p><p>③ 点击手牌查看操作，再点击敌人、筏格或设备选定目标。普通材料每份各占一张；贝币集中占一张，高级弓弩产生的箭按设备等级合并容量。</p><p>④ 节点完成后仍可行动；AP归零仍可使用0 AP牌。点击结束本次航行才会结算生存消耗和设备生产；超出容量时需要弃牌。</p><p>⑤ 战斗有独立 AP 与回合。留意敌方意图，结束回合后承受攻击。战斗时无法合成或改造木筏。</p><p>⑥ 破损格停用设备，修补可恢复；脱落会损失其设备。死亡或完成旅途后返回首页，使用涌潮点成长。</p><p class="gold">实验中的数值与组合仍在试测，请以界面反馈为准。</p></div>`);
+  if(modal.type==='help')html=modalFrame('航行指南',`<div class="help-copy"><p>① 首页选择出身与种子，开始新航行；有进行中的记录时可继续。</p><p>② 每层有独立的航程与末站首领。每轮先领取一次涌泉，再按实际库存选择节点并启航；行动阶段可使用物资、安装设备、合成、修补或进入战斗。</p><p>③ 点击手牌查看操作，再点击敌人、筏格或设备选定目标。普通材料每份各占一张；贝币集中占一张，高级弓弩产生的箭按设备等级合并容量。</p><p>④ 节点完成后仍可行动；AP归零仍可使用0 AP牌。点击结束本次航行才会结算生存消耗和设备生产；超出容量时需要弃牌。</p><p>⑤ 战斗有独立 AP 与回合。留意敌方意图，结束回合后承受攻击。战斗时无法合成或改造木筏。</p><p>⑥ 休息节点免费恢复、升级或附魔，任选一种。迷雾可用8理智或藏品侦察；混乱可用木头1或藏品固定航向。节点获得的环境状态从下一轮开始。破损格停用设备，修补可恢复；脱落会损失其设备。死亡或完成旅途后返回首页，使用涌潮点成长。</p><p class="gold">实验中的数值与组合仍在试测，请以界面反馈为准。</p></div>`);
   $('#overlay-root').innerHTML=html;
 }
 function catalogue(){
@@ -256,6 +276,11 @@ document.addEventListener('click',e=>{
   if(a==='target'){selectedTarget=id;render();return;}
   if(a==='cell'){selectedTarget=id;render();return;}
   if(a==='candidate'){selectedCandidate=id;render();return;}
+  if(a==='altarRelic'){selectedAltarRelic=id;render();return;}
+  if(a==='scout'){run({type:'ScoutNode',candidateId:id,method:el.dataset.method});return;}
+  if(a==='fixHeading'){run({type:'FixHeading',method:el.dataset.method});return;}
+  if(a==='claimRelic'){run({type:'ClaimRelic',relicId:id,accept:true});return;}
+  if(a==='declineRelic'){run({type:'ClaimRelic',accept:false});return;}
   if(a==='randomSeed'){homeSeed=String(Math.floor(Math.random()*4294967296));$('#seed').value=homeSeed;return;}
   if(a==='newGame'){
     homeSeed=$('#seed').value; homeOrigin=$('#origin').value;
@@ -276,14 +301,20 @@ document.addEventListener('click',e=>{
   if(a==='submitVoyage'){if(run({type:'SubmitVoyage',nodeId:selectedCandidate})){selectedCandidate=null;logScroll=0;}return;}
   if(a==='enterNode'){run({type:'EnterNode'});return;}
   if(a==='option'){
-    const option=NODES[view.node?.id]?.options?.find(o=>o.id===id) || view.node?.options?.find(o=>o.id===id);
+    const option=currentNodeOption(view,id,NODES[view.node?.id]);
+    const altarPayment=!!view.node?.altarChoices?.length&&!!(option?.randomCardCost||option?.detachCell||option?.statCosts?.hp);
+    if(altarPayment&&!selectedAltarRelic){toast('请先选择一件藏品，再选择支付方式。',true);return;}
     if(option?.special==='enchant'){
       if(!enchantable()){toast('先选择一张战斗、生存或行动牌，再选择附魔。',true);return;}
       openModal('enchant',{optionId:id});return;
     }
     if(option?.special==='exchange' && !SPRING_POOL.includes(card()?.definitionId)){toast('先选择一张基础资源牌，再进行交换。',true);return;}
     if(option?.special==='upgrade' && (!equipment() || cell()?.state!=='intact' || equipment().level>=CONFIG.upgradeMax)){toast('先选择一件完好筏格上的未满级设备。',true);return;}
-    run({type:'ChooseOption',optionId:id,...(selectedCard?{cardId:selectedCard}:{}),...(equipment()?{equipmentId:equipment().instanceId}:{}),...(option?.enchant?{enchant:option.enchant}:{})});return;
+    const command={type:'ChooseOption',optionId:id,...(selectedCard?{cardId:selectedCard}:{}),...(equipment()?{equipmentId:equipment().instanceId}:{}),...(option?.enchant?{enchant:option.enchant}:{}),...(altarPayment?{relicId:selectedAltarRelic}:{}),...(option?.randomCardCost&&protectedCardId?{protectedCardId}:{})};
+    if(option?.randomCardCost||option?.detachCell||option?.statCosts?.hp){
+      const fee=nodeOptionCost(view,option,protectedCardId),targets=option?.detachCell?(view.node?.detachableCells||[]).map(c=>`${c.id}${c.equipment?'：'+c.equipment.name+' Lv.'+c.equipment.level:''}`).join('、'):option?.randomCardCost?(view.node?.sacrificeCandidates||[]).map(c=>`${c.name} ×${c.quantity || 1}`).join('、'):'';
+      confirmAction('确认节点代价',`${fee.summary}。${fee.risk || ''}${targets?'可能损失：'+targets+'。':''}${protectedCardId?'记名绳结仅保护所选卡的一份。':''}确认后立即结算此选择。`,()=>run(command));
+    }else run(command);return;
   }
   if(a==='play'){const targetId=card()?.targetOperation==='dismantle'?equipment()?.instanceId:selectedTarget;run({type:'PlayCard',cardId:selectedCard,...(targetId?{targetId}:{})});return;}
   if(a==='fuel'){run({type:'FuelLamp',cardId:selectedCard,equipmentId:equipment()?.instanceId});return;}
@@ -385,6 +416,7 @@ document.addEventListener('dblclick',e=>{
   }
 });
 document.addEventListener('change',async e=>{
+  if(e.target.id==='protected-card'){protectedCardId=e.target.value || null;render();return;}
   if(e.target.id==='content-file'){
     const file=e.target.files[0];if(!file)return;
     try{

@@ -4,9 +4,11 @@ import {CARDS,RECIPES,CONFIG,MONSTERS,EQUIPMENT} from '../src/content/index.js';
 const counts=hand=>Object.fromEntries([...new Set(hand.map(c=>c.definitionId))].map(id=>[id,hand.filter(c=>c.definitionId===id).reduce((n,c)=>n+c.quantity,0)]));
 const average=xs=>xs.length?Number((xs.reduce((n,x)=>n+x,0)/xs.length).toFixed(2)):0;
 const ordinary=n=>!['battle','ruin'].includes(n.kind);
+// Event affordability measures ordinary encounters, excluding shop transactions.
+const auditedEvent=n=>ordinary(n)&&n.kind!=='shop';
 const equipment=v=>v.cells.filter(c=>c.state==='intact'&&c.equipment);
 const has=(v,id)=>equipment(v).some(c=>c.equipment.definitionId===id)||v.hand.some(c=>c.definitionId===id);
-const affordable=(v,o)=>v.ap>=o.cost&&Object.entries(o.cardCosts||{}).every(([id,n])=>(counts(v.hand)[id]||0)>=n);
+const affordable=(v,o)=>v.node.optionStatus?.[o.id]?.canChoose ?? (v.ap>=(o.cost||0)&&Object.entries(o.cardCosts||{}).every(([id,n])=>(counts(v.hand)[id]||0)>=n));
 
 export function runBalanceGame({seed,originId='strong',strategy='events',profile=createProfile(),trace=false}){
  const g=new GameSession(profile);
@@ -26,8 +28,8 @@ export function runBalanceGame({seed,originId='strong',strategy='events',profile
    if(row.nodeHistory.at(-1)===after.node.id)row.immediateRepeats++;
    if(after.node.id!=='boss')row.ordinarySelected++;
    row.nodeHistory.push(after.node.id);
-   if(ordinary(after.node)){
-    if(after.node.kind!=='shop')row.eventArrivalsTotal++;row.eventArrivals[after.node.id]=(row.eventArrivals[after.node.id]||0)+1;
+   if(auditedEvent(after.node)){
+    row.eventArrivalsTotal++;row.eventArrivals[after.node.id]=(row.eventArrivals[after.node.id]||0)+1;
     const payable=after.node.options.some(o=>o.id!=='leave'&&affordable(after,o));
     payableAtArrival.set(after.voyage,payable);if(payable){row.payableEventArrivals++;row.payableByNode[after.node.id]=(row.payableByNode[after.node.id]||0)+1;}
    }
@@ -35,7 +37,7 @@ export function runBalanceGame({seed,originId='strong',strategy='events',profile
   if(command.type==='ChooseOption'){
    const o=before.node.options.find(o=>o.id===command.optionId),key=before.node.id+':'+o.id;
    row.eventSelections[key]=(row.eventSelections[key]||0)+1;
-   const paid=Object.values(o.cardCosts||{}).reduce((n,x)=>n+x,0)+(o.special==='exchange'?1:0);row.eventCardsConsumed+=paid;row.eventPaymentsByNode[before.node.id]=(row.eventPaymentsByNode[before.node.id]||0)+paid;
+   const paid=Object.values(o.cardCosts||{}).reduce((n,x)=>n+x,0)+(o.special==='exchange'?1:0)+(o.randomCardCost||0);row.eventCardsConsumed+=paid;row.eventPaymentsByNode[before.node.id]=(row.eventPaymentsByNode[before.node.id]||0)+paid;
    if(o.id==='leave'&&payableAtArrival.get(before.voyage))row.leftDespiteAffordable++;
   }
   if(command.type==='Craft')row.craftCardsConsumed+=Object.values(RECIPES[command.recipeId].ingredients).reduce((n,x)=>n+x,0);
@@ -51,13 +53,13 @@ export function runBalanceGame({seed,originId='strong',strategy='events',profile
   if(command.type==='EndBattleTurn'){row.battleRounds++;row.battleDamage+=Math.max(0,before.current.hp-after.current.hp);}
   if(command.type==='EndVoyage'){
    row.survivalDamage+=Math.max(0,before.current.hp-after.current.hp);
-   row.settlements.push({voyage:before.voyage,current:structuredClone(after.current),capacity:after.capacity,excess:after.excess,equipment:equipment(after).map(c=>c.equipment.definitionId),poolRemaining:after.nodePool.length});
+   row.settlements.push({voyage:before.voyage,current:structuredClone(after.current),capacity:after.capacity,excess:after.excess,equipment:equipment(after).map(c=>c.equipment.definitionId),poolRemaining:after.nodePoolCount});
   }
   return after;
  }
- act({type:'NewGame',seed,originId});row.initialPoolSize=g.getView().nodePool.length;
+ act({type:'NewGame',seed,originId});row.initialPoolSize=g.getView().nodePoolCount;
  function eventCommand(v){
-  const options=v.node.options.filter(o=>o.id!=='leave'&&affordable(v,o));
+  const options=v.node.options.filter(o=>o.id!=='leave'&&o.special!=='altar'&&affordable(v,o));
   let best={score:0,command:{type:'ChooseOption',optionId:'leave'}};
   if(strategy==='skip-events')return best;
   for(const o of options){
@@ -67,16 +69,19 @@ export function runBalanceGame({seed,originId='strong',strategy='events',profile
     if(e.type==='GiveCard'){const n=e.amount||1;score+=n*(e.id==='water'?Math.max(4,Math.min(25,v.stats.hydrationMax-v.current.hydration)):e.id==='food'?Math.max(4,Math.min(25,v.stats.hungerMax-v.current.hunger)):5);}
     if(e.type==='DamageCell')score-=30;
    }
-   score-=Object.values(o.cardCosts||{}).reduce((n,x)=>n+x,0)*4;
+   score-=(Object.values(o.cardCosts||{}).reduce((n,x)=>n+x,0)+(o.randomCardCost||0))*4;
+   score-=(o.statCosts?.sanity||0)*1.8+(o.statCosts?.hp||0)*3;
+   for(const result of o.outcomes||[])for(const e of result.effects||[])if(e.type==='GiveCard')score+=(e.amount||1)*5*result.weight/o.outcomes.reduce((n,x)=>n+x.weight,0);
    if(o.special==='upgrade'){
     const target=equipment(v).filter(c=>c.equipment.level<CONFIG.upgradeMax).sort((a,b)=>['filter','planter','medkit','lamp','crossbow'].indexOf(a.equipment.definitionId)-['filter','planter','medkit','lamp','crossbow'].indexOf(b.equipment.definitionId))[0];
     if(target){command.equipmentId=target.equipment.instanceId;score+=['filter','planter'].includes(target.equipment.definitionId)?40:18;}
    }
    if(o.special==='enchant'){
-    const target=v.hand.find(c=>['water','food','calm'].includes(c.definitionId)&&!c.enchant.includes('return'));
+    const target=v.hand.find(c=>['water','food','calm'].includes(c.definitionId)&&!c.enchant.includes('return'))||v.hand.find(c=>['combat','survival','action'].includes(c.kind)&&!c.enchant.includes('return'));
     if(target){command.cardId=target.instanceId;command.enchant='return';score+=35;}
    }
-   // Conversion and blood offer no immediate survival value to this policy.
+   if(o.special==='exchange'){const target=v.hand.find(c=>CARDS[c.definitionId].kind==='resource'&&(counts(v.hand)[c.definitionId]||0)>(o.cardCosts?.[c.definitionId]||0));if(target){command.cardId=target.instanceId;score+=5;}}
+   // Blood and altar offers remain optional and are not pursued by this survival policy.
    if(score>best.score&&g.preview(command).ok)best={score,command};
   }
   return best;
@@ -99,16 +104,17 @@ export function runBalanceGame({seed,originId='strong',strategy='events',profile
  }
  for(let guard=0;guard<800;guard++){
   const v=g.getView();if(v.phase==='finished')break;
+  if(v.pendingRelic){const choice=v.pendingRelic.choices.find(r=>!r.drawback);act(choice?{type:'ClaimRelic',relicId:choice.id,accept:true}:{type:'ClaimRelic',accept:false});continue;}
   if(v.phase==='navigation'){
    const ranked=v.candidates.map(n=>{
-    const def=MONSTERS[n.monster],armed=has(v,'crossbow');
+    const def=n.visibility==='full'?MONSTERS[n.monster]:null,knownId=n.visibility==='full'?n.definitionId:null,armed=has(v,'crossbow');
     let score=0;
-    if(n.id==='camp')score=40+Math.max(0,60-v.current.hp)+Math.max(0,40-v.current.sanity);
-    if(n.id==='drift')score=35;
-    if(n.id==='storm')score=20;
-    if(n.id==='trader')score=(counts(v.hand).coin||0)>=3?50:10;
-    if(n.id==='jelly')score=5;
-    if(!ordinary(n))score=armed?25:(n.kind==='ruin'?0: -def.hp);
+    if(knownId==='camp')score=40+Math.max(0,60-v.current.hp)+Math.max(0,40-v.current.sanity);
+    if(knownId==='drift')score=35;
+    if(knownId==='storm')score=20;
+    if(knownId==='trader')score=(counts(v.hand).coin||0)>=3?50:10;
+    if(knownId==='jelly')score=5;
+    if(!ordinary(n))score=armed?25:(n.kind==='ruin'?0: -(def?.hp ?? 10));
     return {node:n,score};
    }).sort((a,b)=>b.score-a.score||a.node.id.localeCompare(b.node.id));
    act({type:'SubmitVoyage',nodeId:ranked[0].node.id});continue;
@@ -122,7 +128,7 @@ export function runBalanceGame({seed,originId='strong',strategy='events',profile
     const e=eventCommand(v);
     if(strategy==='events'&&e.score>0){act(e.command);continue;}
    }
-   const b=build(v);if(b){act(b);continue;}
+   const b=build(v);if(b&&g.preview(b).ok){act(b);continue;}
    if(!v.node.resolved){
     if(!ordinary(v.node)){act({type:'EnterNode'});continue;}
     if(v.node.kind==='shop'){
@@ -157,12 +163,12 @@ export function runBalanceGame({seed,originId='strong',strategy='events',profile
   throw new Error('未处理阶段 '+v.phase);
  }
  const final=g.getView();if(final.phase!=='finished')throw new Error('策略超过800次命令');
- return {...row,phase:final.phase,result:final.result.id,voyage:final.voyage,length:final.length,current:final.current,remainingPool:final.nodePool.length,finalEquipment:equipment(final).map(c=>({id:c.equipment.definitionId,level:c.equipment.level})),finalHand:counts(final.hand)};
+ return {...row,phase:final.phase,result:final.result.id,voyage:final.voyage,length:final.length,current:final.current,remainingPool:final.nodePoolCount,finalEquipment:equipment(final).map(c=>({id:c.equipment.definitionId,level:c.equipment.level})),finalHand:counts(final.hand)};
 }
 
 export function summarizeRuns(runs){
  const endings={},sum=k=>runs.reduce((n,r)=>n+r[k],0),wins=runs.filter(r=>['survived','true'].includes(r.result));
  for(const r of runs)endings[r.result]=(endings[r.result]||0)+1;
  const events=sum('eventArrivalsTotal'),payable=sum('payableEventArrivals');
- return {runs:runs.length,bossWins:wins.length,bossWinPercent:Number((100*wins.length/runs.length).toFixed(1)),endings,meanVoyages:average(runs.map(r=>r.voyage)),meanEventCardsConsumed:average(runs.map(r=>r.eventCardsConsumed)),meanCraftCardsConsumed:average(runs.map(r=>r.craftCardsConsumed)),meanDiscardedCards:average(runs.map(r=>r.discardedCards)),meanSurvivalDamage:average(runs.map(r=>r.survivalDamage)),meanBattleDamage:average(runs.map(r=>r.battleDamage)),eventArrivals:events,payableEventArrivals:payable,payableArrivalPercent:Number((100*payable/events).toFixed(1)),leftDespiteAffordable:sum('leftDespiteAffordable'),lengths:[...new Set(runs.map(r=>r.length))].sort((a,b)=>a-b),failedCommands:sum('failedCommands')};
+ return {runs:runs.length,bossWins:wins.length,bossWinPercent:Number((100*wins.length/runs.length).toFixed(1)),endings,meanVoyages:average(runs.map(r=>r.voyage)),meanEventCardsConsumed:average(runs.map(r=>r.eventCardsConsumed)),meanCraftCardsConsumed:average(runs.map(r=>r.craftCardsConsumed)),meanDiscardedCards:average(runs.map(r=>r.discardedCards)),meanSurvivalDamage:average(runs.map(r=>r.survivalDamage)),meanBattleDamage:average(runs.map(r=>r.battleDamage)),eventArrivals:events,payableEventArrivals:payable,payableArrivalPercent:events?Number((100*payable/events).toFixed(1)):0,leftDespiteAffordable:sum('leftDespiteAffordable'),lengths:[...new Set(runs.map(r=>r.length))].sort((a,b)=>a-b),failedCommands:sum('failedCommands')};
 }

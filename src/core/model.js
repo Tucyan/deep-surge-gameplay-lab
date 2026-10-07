@@ -11,7 +11,7 @@ export function sources(state,profile){
  for(const id of profile.tech)if(TECH[id])result.push({...TECH[id],source:'科技树'});
  const relics=new Set([...(state?.relicIds||[]),...profile.rareRelics]);
  for(const id of relics)if(RELICS[id])result.push({...RELICS[id],source:'藏品'});
- for(const b of state?.buffs||[])result.push({...BUFFS[b.definitionId],source:'增减益',multiplier:b.stacks});
+ for(const b of state?.buffs||[])if(!BUFFS[b.definitionId].environment||b.activeFrom<=state.voyage)result.push({...BUFFS[b.definitionId],source:'增减益',multiplier:b.stacks});
  return result;
 }
 export function stat(state,profile,key){

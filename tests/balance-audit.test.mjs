@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {runBalanceGame, summarizeRuns} from '../scripts/balance-player.mjs';
 import {GameSession} from '../src/core/session.js';
+import {NODES} from '../src/content/index.js';
 
 function survivalFixture(){
  const g=new GameSession();g.execute({type:'NewGame',seed:2654435761,originId:'strong'});
@@ -49,3 +50,10 @@ test('从双饥渴归零吃喝各一份40点食水，本轮结算不再扣生命
  assert.equal(g.execute({type:'EndVoyage'}).ok,true);
  assert.equal(g.getView().current.hp,hp);assert.equal(g.getView().current.hunger,10);assert.equal(g.getView().current.hydration,10);
 });
+test('事件可支付率的分母和分子都排除商店，同一到达只计一次',()=>{
+ const runs=Array.from({length:6},(_,i)=>runBalanceGame({seed:Math.imul(i+1,2654435761)>>>0,originId:'strong',strategy:'events'}));
+ assert.ok(runs.some(r=>r.nodeHistory.includes('trader')),'覆盖有免费故事选项的商店到达');
+ for(const r of runs){const expected=r.nodeHistory.filter(id=>!['battle','ruin'].includes(NODES[id].kind)&&NODES[id].kind!=='shop');assert.equal(r.eventArrivalsTotal,expected.length);assert.equal(Object.values(r.eventArrivals).reduce((n,x)=>n+x,0),expected.length);assert.equal(r.eventArrivals.trader,undefined);assert.equal(r.payableByNode.trader,undefined);assert.ok(r.payableEventArrivals<=r.eventArrivalsTotal);}
+ const summary=summarizeRuns(runs);assert.ok(summary.payableArrivalPercent>=0&&summary.payableArrivalPercent<=100);
+});
+test('没有普通事件时可支付率为0且无NaN',()=>{const row=runBalanceGame({seed:2654435761});row.eventArrivalsTotal=0;row.payableEventArrivals=0;assert.equal(summarizeRuns([row]).payableArrivalPercent,0);});

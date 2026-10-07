@@ -1,0 +1,1011 @@
+{
+  "schema": 1,
+  "contentVersion": "gameplay-experiment-v5",
+  "randomVersion": "xorshift32-v1",
+  "profile": {
+    "points": 0,
+    "purchases": {},
+    "pending": {},
+    "tech": [],
+    "rareRelics": [],
+    "discovered": {
+      "cards": [
+        "punch",
+        "wood",
+        "plastic",
+        "iron",
+        "rope",
+        "cloth",
+        "planter",
+        "food",
+        "lamp",
+        "water",
+        "crossbow"
+      ],
+      "relics": [],
+      "monsters": [],
+      "diaries": [],
+      "endings": []
+    },
+    "completedNodes": 0,
+    "runs": 0,
+    "legacyCards": []
+  },
+  "state": {
+    "phase": "navigation",
+    "seed": 2654435761,
+    "rng": 712101863,
+    "originId": "strong",
+    "voyage": 11,
+    "length": 11,
+    "ap": 0,
+    "battleAp": 0,
+    "current": {
+      "hp": 27,
+      "hunger": 0,
+      "hydration": 0,
+      "sanity": 65
+    },
+    "base": {
+      "hpMax": 30,
+      "hungerMax": 100,
+      "hydrationMax": 100,
+      "sanityMax": 100,
+      "baseAp": 3,
+      "battleAp": 3,
+      "handLimit": 10,
+      "damage": 0
+    },
+    "bonuses": {},
+    "hand": [
+      {
+        "instanceId": "card-1",
+        "definitionId": "punch",
+        "quantity": 1,
+        "enchant": [],
+        "level": 1,
+        "stackLimit": 1
+      },
+      {
+        "instanceId": "card-47",
+        "definitionId": "plastic",
+        "quantity": 1,
+        "enchant": [],
+        "level": 1,
+        "stackLimit": 1,
+        "source": "spring:5"
+      },
+      {
+        "instanceId": "card-53",
+        "definitionId": "iron",
+        "quantity": 1,
+        "enchant": [],
+        "level": 1,
+        "stackLimit": 1,
+        "source": "spring:6"
+      },
+      {
+        "instanceId": "card-55",
+        "definitionId": "plastic",
+        "quantity": 1,
+        "enchant": [],
+        "level": 1,
+        "stackLimit": 1,
+        "source": "spring:6"
+      },
+      {
+        "instanceId": "card-63",
+        "definitionId": "plastic",
+        "quantity": 1,
+        "enchant": [],
+        "level": 1,
+        "stackLimit": 1,
+        "source": "spring:7"
+      },
+      {
+        "instanceId": "card-78",
+        "definitionId": "iron",
+        "quantity": 1,
+        "enchant": [],
+        "level": 1,
+        "stackLimit": 1,
+        "source": "spring:9"
+      },
+      {
+        "instanceId": "card-85",
+        "definitionId": "cloth",
+        "quantity": 1,
+        "enchant": [],
+        "level": 1,
+        "stackLimit": 1
+      },
+      {
+        "instanceId": "card-87",
+        "definitionId": "rope",
+        "quantity": 1,
+        "enchant": [],
+        "level": 1,
+        "stackLimit": 1,
+        "source": "spring:10"
+      },
+      {
+        "instanceId": "card-89",
+        "definitionId": "iron",
+        "quantity": 1,
+        "enchant": [],
+        "level": 1,
+        "stackLimit": 1,
+        "source": "spring:10"
+      },
+      {
+        "instanceId": "card-97",
+        "definitionId": "food",
+        "quantity": 1,
+        "enchant": [],
+        "level": 1,
+        "stackLimit": 1,
+        "source": "equipment-13"
+      },
+      {
+        "instanceId": "card-98",
+        "definitionId": "plastic",
+        "quantity": 1,
+        "enchant": [],
+        "level": 1,
+        "stackLimit": 1,
+        "source": "spring:11"
+      },
+      {
+        "instanceId": "card-99",
+        "definitionId": "cloth",
+        "quantity": 1,
+        "enchant": [],
+        "level": 1,
+        "stackLimit": 1,
+        "source": "spring:11"
+      },
+      {
+        "instanceId": "card-100",
+        "definitionId": "wood",
+        "quantity": 1,
+        "enchant": [],
+        "level": 1,
+        "stackLimit": 1,
+        "source": "spring:11"
+      }
+    ],
+    "tools": [
+      "handtool"
+    ],
+    "cells": [
+      {
+        "id": "cell-0-0",
+        "x": 0,
+        "z": 0,
+        "state": "intact",
+        "damagedAt": null,
+        "equipment": {
+          "instanceId": "equipment-13",
+          "definitionId": "planter",
+          "level": 1,
+          "fuel": 0,
+          "progress": 0
+        }
+      },
+      {
+        "id": "cell-1-0",
+        "x": 1,
+        "z": 0,
+        "state": "intact",
+        "damagedAt": null,
+        "equipment": {
+          "instanceId": "equipment-42",
+          "definitionId": "lamp",
+          "level": 1,
+          "fuel": 0,
+          "progress": 0
+        }
+      },
+      {
+        "id": "cell-0-1",
+        "x": 0,
+        "z": 1,
+        "state": "intact",
+        "damagedAt": null,
+        "equipment": {
+          "instanceId": "equipment-96",
+          "definitionId": "crossbow",
+          "level": 1,
+          "fuel": 0,
+          "progress": 0
+        }
+      },
+      {
+        "id": "cell-1-1",
+        "x": 1,
+        "z": 1,
+        "state": "intact",
+        "damagedAt": null,
+        "equipment": null
+      }
+    ],
+    "buffs": [],
+    "relicIds": [],
+    "log": [
+      {
+        "voyage": 11,
+        "groups": [
+          {
+            "name": "补给",
+            "entries": [
+              "先领取涌泉资源 3 张，再选择航行节点"
+            ]
+          },
+          {
+            "name": "物资",
+            "entries": [
+              "获得 木头",
+              "获得 布条",
+              "获得 塑料"
+            ]
+          }
+        ]
+      },
+      {
+        "voyage": 10,
+        "groups": [
+          {
+            "name": "弃牌",
+            "entries": [
+              "弃置 布条"
+            ]
+          },
+          {
+            "name": "结算",
+            "entries": [
+              "结算完成，请处理超限手牌后继续"
+            ]
+          },
+          {
+            "name": "生产",
+            "entries": [
+              "土盆 自动生产并领取"
+            ]
+          },
+          {
+            "name": "节点",
+            "entries": [
+              "海怪商人：听一段海上故事"
+            ]
+          },
+          {
+            "name": "数值",
+            "entries": [
+              "生命 -4",
+              "精神 +15",
+              "精神 -15",
+              "饱食 -30",
+              "精神 +5"
+            ]
+          },
+          {
+            "name": "制造",
+            "entries": [
+              "制作 制造弓弩"
+            ]
+          },
+          {
+            "name": "木筏",
+            "entries": [
+              "安装 弓弩 于 cell-0-1",
+              "投入燃料，剩余 1 节点"
+            ]
+          },
+          {
+            "name": "导航",
+            "entries": [
+              "驶向 海怪商人"
+            ]
+          },
+          {
+            "name": "补给",
+            "entries": [
+              "先领取涌泉资源 4 张，再选择航行节点"
+            ]
+          },
+          {
+            "name": "物资",
+            "entries": [
+              "获得 食用植物",
+              "获得 弓弩",
+              "获得 木头",
+              "获得 废铁",
+              "获得 木头",
+              "获得 绳索"
+            ]
+          },
+          {
+            "name": "海况",
+            "entries": [
+              "漂流丰收：本轮生效"
+            ]
+          }
+        ]
+      },
+      {
+        "voyage": 9,
+        "groups": [
+          {
+            "name": "弃牌",
+            "entries": [
+              "弃置 布条"
+            ]
+          },
+          {
+            "name": "结算",
+            "entries": [
+              "结算完成，请处理超限手牌后继续"
+            ]
+          },
+          {
+            "name": "节点",
+            "entries": [
+              "水母转换者：投入媒介转换资源"
+            ]
+          },
+          {
+            "name": "木筏",
+            "entries": [
+              "投入燃料，剩余 1 节点"
+            ]
+          },
+          {
+            "name": "数值",
+            "entries": [
+              "生命 -3",
+              "精神 +15",
+              "精神 -15",
+              "饱食 -30",
+              "饱食 +40"
+            ]
+          },
+          {
+            "name": "导航",
+            "entries": [
+              "驶向 水母转换者"
+            ]
+          },
+          {
+            "name": "补给",
+            "entries": [
+              "先领取涌泉资源 3 张，再选择航行节点"
+            ]
+          },
+          {
+            "name": "物资",
+            "entries": [
+              "获得 布条",
+              "获得 布条",
+              "获得 木头",
+              "获得 废铁"
+            ]
+          }
+        ]
+      },
+      {
+        "voyage": 8,
+        "groups": [
+          {
+            "name": "弃牌",
+            "entries": [
+              "弃置 布条",
+              "弃置 绳索",
+              "弃置 绳索",
+              "弃置 布条"
+            ]
+          },
+          {
+            "name": "结算",
+            "entries": [
+              "结算完成，请处理超限手牌后继续"
+            ]
+          },
+          {
+            "name": "增减益",
+            "entries": [
+              "休整余裕 已结束"
+            ]
+          },
+          {
+            "name": "生产",
+            "entries": [
+              "土盆 自动生产并领取"
+            ]
+          },
+          {
+            "name": "节点",
+            "entries": [
+              "海怪商人：听一段海上故事"
+            ]
+          },
+          {
+            "name": "数值",
+            "entries": [
+              "生命 -3",
+              "精神 -15",
+              "饱食 -30",
+              "精神 +5"
+            ]
+          },
+          {
+            "name": "导航",
+            "entries": [
+              "驶向 海怪商人"
+            ]
+          },
+          {
+            "name": "补给",
+            "entries": [
+              "先领取涌泉资源 3 张，再选择航行节点"
+            ]
+          },
+          {
+            "name": "物资",
+            "entries": [
+              "获得 食用植物",
+              "获得 绳索",
+              "获得 布条",
+              "获得 布条"
+            ]
+          }
+        ]
+      },
+      {
+        "voyage": 7,
+        "groups": [
+          {
+            "name": "弃牌",
+            "entries": [
+              "弃置 绳索",
+              "弃置 绳索"
+            ]
+          },
+          {
+            "name": "结算",
+            "entries": [
+              "结算完成，请处理超限手牌后继续"
+            ]
+          },
+          {
+            "name": "木筏",
+            "entries": [
+              "投入燃料，剩余 1 节点"
+            ]
+          },
+          {
+            "name": "节点",
+            "entries": [
+              "漂流灯塔：听取航线提醒"
+            ]
+          },
+          {
+            "name": "数值",
+            "entries": [
+              "生命 -3",
+              "精神 +15",
+              "精神 -15",
+              "水分 -10",
+              "饱食 -30",
+              "饱食 +40"
+            ]
+          },
+          {
+            "name": "导航",
+            "entries": [
+              "驶向 漂流灯塔"
+            ]
+          },
+          {
+            "name": "补给",
+            "entries": [
+              "先领取涌泉资源 3 张，再选择航行节点"
+            ]
+          },
+          {
+            "name": "物资",
+            "entries": [
+              "获得 木头",
+              "获得 绳索",
+              "获得 塑料",
+              "获得 绳索"
+            ]
+          }
+        ]
+      },
+      {
+        "voyage": 6,
+        "groups": [
+          {
+            "name": "弃牌",
+            "entries": [
+              "弃置 布条",
+              "弃置 绳索",
+              "弃置 布条",
+              "弃置 绳索"
+            ]
+          },
+          {
+            "name": "结算",
+            "entries": [
+              "结算完成，请处理超限手牌后继续"
+            ]
+          },
+          {
+            "name": "生产",
+            "entries": [
+              "土盆 自动生产并领取"
+            ]
+          },
+          {
+            "name": "节点",
+            "entries": [
+              "灯火休整地：包扎补给休整"
+            ]
+          },
+          {
+            "name": "增减益",
+            "entries": [
+              "获得增益：休整余裕"
+            ]
+          },
+          {
+            "name": "数值",
+            "entries": [
+              "精神 -15",
+              "水分 -30",
+              "饱食 -30",
+              "精神 +40",
+              "水分 +40",
+              "饱食 +40",
+              "生命 +10"
+            ]
+          },
+          {
+            "name": "导航",
+            "entries": [
+              "驶向 灯火休整地"
+            ]
+          },
+          {
+            "name": "补给",
+            "entries": [
+              "先领取涌泉资源 3 张，再选择航行节点"
+            ]
+          },
+          {
+            "name": "物资",
+            "entries": [
+              "获得 食用植物",
+              "获得 塑料",
+              "获得 布条",
+              "获得 废铁"
+            ]
+          }
+        ]
+      },
+      {
+        "voyage": 5,
+        "groups": [
+          {
+            "name": "结算",
+            "entries": [
+              "结算完成，请处理超限手牌后继续"
+            ]
+          },
+          {
+            "name": "海况",
+            "entries": [
+              "混乱 已结束"
+            ]
+          },
+          {
+            "name": "节点",
+            "entries": [
+              "海怪商人：听一段海上故事"
+            ]
+          },
+          {
+            "name": "木筏",
+            "entries": [
+              "投入燃料，剩余 1 节点"
+            ]
+          },
+          {
+            "name": "数值",
+            "entries": [
+              "生命 -3",
+              "精神 +15",
+              "精神 -15",
+              "水分 -10",
+              "饱食 -30",
+              "精神 +5",
+              "饱食 +40"
+            ]
+          },
+          {
+            "name": "导航",
+            "entries": [
+              "驶向 海怪商人（偏航概率 25%）"
+            ]
+          },
+          {
+            "name": "补给",
+            "entries": [
+              "先领取涌泉资源 3 张，再选择航行节点"
+            ]
+          },
+          {
+            "name": "物资",
+            "entries": [
+              "获得 木头",
+              "获得 塑料",
+              "获得 绳索"
+            ]
+          }
+        ]
+      },
+      {
+        "voyage": 4,
+        "groups": [
+          {
+            "name": "结算",
+            "entries": [
+              "结算完成，请处理超限手牌后继续"
+            ]
+          },
+          {
+            "name": "生产",
+            "entries": [
+              "土盆 自动生产并领取"
+            ]
+          },
+          {
+            "name": "节点",
+            "entries": [
+              "风暴·散落货物：搭浮架回收补给"
+            ]
+          },
+          {
+            "name": "数值",
+            "entries": [
+              "精神 -15",
+              "水分 -30",
+              "饱食 -30",
+              "饱食 +40",
+              "水分 +40",
+              "精神 +20"
+            ]
+          },
+          {
+            "name": "节点费用",
+            "entries": [
+              "投入 布条 ×1",
+              "投入 绳索 ×1",
+              "投入 废铁 ×1"
+            ]
+          },
+          {
+            "name": "木筏",
+            "entries": [
+              "安装 灯 于 cell-1-0"
+            ]
+          },
+          {
+            "name": "制造",
+            "entries": [
+              "制作 制造灯"
+            ]
+          },
+          {
+            "name": "导航",
+            "entries": [
+              "驶向 风暴·散落货物（偏航概率 25%）"
+            ]
+          },
+          {
+            "name": "补给",
+            "entries": [
+              "先领取涌泉资源 3 张，再选择航行节点"
+            ]
+          },
+          {
+            "name": "物资",
+            "entries": [
+              "获得 食用植物",
+              "获得 食用植物",
+              "获得 淡水",
+              "获得 灯",
+              "获得 木头",
+              "获得 绳索",
+              "获得 布条"
+            ]
+          },
+          {
+            "name": "海况",
+            "entries": [
+              "混乱：本轮生效"
+            ]
+          }
+        ]
+      },
+      {
+        "voyage": 3,
+        "groups": [
+          {
+            "name": "弃牌",
+            "entries": [
+              "弃置 废铁",
+              "弃置 废铁"
+            ]
+          },
+          {
+            "name": "结算",
+            "entries": [
+              "结算完成，请处理超限手牌后继续"
+            ]
+          },
+          {
+            "name": "节点",
+            "entries": [
+              "深潮祭坛：离开祭坛"
+            ]
+          },
+          {
+            "name": "数值",
+            "entries": [
+              "生命 -3",
+              "精神 -15",
+              "饱食 -30",
+              "饱食 +40"
+            ]
+          },
+          {
+            "name": "导航",
+            "entries": [
+              "混乱偏航：原计划 海怪商人 → 实际到达 深潮祭坛"
+            ]
+          },
+          {
+            "name": "补给",
+            "entries": [
+              "先领取涌泉资源 3 张，再选择航行节点"
+            ]
+          },
+          {
+            "name": "物资",
+            "entries": [
+              "获得 废铁",
+              "获得 废铁",
+              "获得 绳索"
+            ]
+          },
+          {
+            "name": "海况",
+            "entries": [
+              "混乱：本轮生效"
+            ]
+          }
+        ]
+      },
+      {
+        "voyage": 2,
+        "groups": [
+          {
+            "name": "弃牌",
+            "entries": [
+              "弃置 废铁"
+            ]
+          },
+          {
+            "name": "结算",
+            "entries": [
+              "结算完成，请处理超限手牌后继续"
+            ]
+          },
+          {
+            "name": "生产",
+            "entries": [
+              "土盆 自动生产并领取"
+            ]
+          },
+          {
+            "name": "数值",
+            "entries": [
+              "生命 -4",
+              "精神 -15",
+              "水分 -10",
+              "饱食 -10"
+            ]
+          },
+          {
+            "name": "节点",
+            "entries": [
+              "风暴·沉底货舱：下潜货舱"
+            ]
+          },
+          {
+            "name": "节点费用",
+            "entries": [
+              "投入 绳索 ×1"
+            ]
+          },
+          {
+            "name": "导航",
+            "entries": [
+              "驶向 风暴·沉底货舱"
+            ]
+          },
+          {
+            "name": "补给",
+            "entries": [
+              "先领取涌泉资源 3 张，再选择航行节点"
+            ]
+          },
+          {
+            "name": "物资",
+            "entries": [
+              "获得 食用植物",
+              "获得 废铁 ×2",
+              "获得 布条",
+              "获得 废铁",
+              "获得 绳索"
+            ]
+          }
+        ]
+      },
+      {
+        "voyage": 1,
+        "groups": [
+          {
+            "name": "结算",
+            "entries": [
+              "结算完成，请处理超限手牌后继续"
+            ]
+          },
+          {
+            "name": "数值",
+            "entries": [
+              "精神 -15",
+              "水分 -30",
+              "饱食 -30"
+            ]
+          },
+          {
+            "name": "节点",
+            "entries": [
+              "漂浮物·遗失货袋：换取货袋"
+            ]
+          },
+          {
+            "name": "节点费用",
+            "entries": [
+              "随机失去 布条 ×1"
+            ]
+          },
+          {
+            "name": "木筏",
+            "entries": [
+              "安装 土盆 于 cell-0-0"
+            ]
+          },
+          {
+            "name": "制造",
+            "entries": [
+              "制作 制造土盆"
+            ]
+          },
+          {
+            "name": "导航",
+            "entries": [
+              "驶向 漂浮物·遗失货袋"
+            ]
+          },
+          {
+            "name": "启航",
+            "entries": [
+              "出身：强壮之人；第1层，本层 11 次航行"
+            ]
+          },
+          {
+            "name": "补给",
+            "entries": [
+              "先领取涌泉资源 3 张，再选择航行节点"
+            ]
+          },
+          {
+            "name": "物资",
+            "entries": [
+              "获得 绳索",
+              "获得 废铁",
+              "获得 土盆",
+              "获得 布条",
+              "获得 布条",
+              "获得 绳索",
+              "获得 废铁",
+              "获得 塑料",
+              "获得 木头",
+              "获得 出拳"
+            ]
+          }
+        ]
+      }
+    ],
+    "candidates": [
+      {
+        "id": "boss",
+        "name": "层底：涌潮之眼",
+        "kind": "battle",
+        "description": "本层最后的阻拦。Boss会污染手牌。",
+        "monster": "boss",
+        "boss": true,
+        "instanceId": "candidate-101",
+        "visibility": "full"
+      }
+    ],
+    "node": null,
+    "battle": null,
+    "nodeVisits": {
+      "drift": 1,
+      "storm": 2,
+      "altar": 1,
+      "trader": 3,
+      "camp": 1,
+      "fogGuide": 1,
+      "jelly": 1
+    },
+    "nodePool": [
+      "ruin",
+      "jellyBattle",
+      "camp",
+      "ruin",
+      "ruin",
+      "jelly",
+      "battle",
+      "trader",
+      "battle",
+      "storm"
+    ],
+    "lastNodeId": "trader",
+    "flags": {
+      "bossDefeated": false,
+      "avoidWave": false
+    },
+    "nextId": 102,
+    "completedNodes": 10,
+    "settledVoyage": 10,
+    "level": 1,
+    "xp": 0,
+    "pendingEnchant": 0,
+    "result": null,
+    "blessing": false,
+    "relicUsage": {},
+    "roundEventUnits": 0,
+    "pendingRelic": null,
+    "springClaimedVoyage": 11,
+    "navigation": {
+      "fixedHeading": false,
+      "plannedNodeId": null,
+      "actualNodeId": null
+    },
+    "guidance": null,
+    "layers": [
+      {
+        "definitionId": "layer1",
+        "length": 11,
+        "completed": false
+      }
+    ],
+    "layerIndex": 0,
+    "layerVoyage": 11
+  }
+}

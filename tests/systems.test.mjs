@@ -75,5 +75,5 @@ test('精神保护读取藏品能力字段，不绑定珍珠ID',()=>{
  const old=RELICS.guardian.protectSanity;try{RELICS.guardian.protectSanity=true;const g=fixture(s=>{s.relicIds=['guardian'];s.current.sanity=5;s.node.resolved=true;});ok(g,{type:'EndVoyage'});assert.equal(g.getView().phase,'discard');}finally{RELICS.guardian.protectSanity=old;}
 });
 test('末轮Boss撤退只得到撤离结局，不能声称击败Boss',()=>{
- const g=fixture(s=>{s.voyage=s.length;s.node={...structuredClone(NODES.boss),resolved:false};});ok(g,{type:'EnterNode'});ok(g,{type:'EndBattleTurn'});ok(g,{type:'Retreat'});ok(g,{type:'EndVoyage'});ok(g,{type:'FinishDiscard'});assert.equal(g.getView().result.id,'withdrawn');
+ const g=fixture(s=>{s.voyage=s.length;s.layerVoyage=s.length;s.springClaimedVoyage=s.voyage;s.node={...structuredClone(NODES.boss),resolved:false};});ok(g,{type:'EnterNode'});ok(g,{type:'EndBattleTurn'});ok(g,{type:'Retreat'});ok(g,{type:'EndVoyage'});ok(g,{type:'FinishDiscard'});assert.equal(g.getView().result.id,'withdrawn');
 });

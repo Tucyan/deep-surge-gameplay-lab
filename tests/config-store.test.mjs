@@ -16,7 +16,7 @@ test('应用配置能改变真实游戏，内容版本隔离存档，恢复默�
     assert.notEqual(CONFIG.contentVersion,oldSave.contentVersion);
     assert.throws(()=>GameSession.restore(oldSave),/版本/);
     const game=new GameSession();game.execute({type:'NewGame',originId:'strong',seed:245});
-    const snapshot=game.serialize();snapshot.state.candidates=[structuredClone(changed.content.NODES.battle)];
+    const snapshot=game.serialize();snapshot.state.nodePool=["battle"];snapshot.state.candidates=[{...structuredClone(changed.content.NODES.battle),instanceId:"fixture-battle",visibility:"full"}];
     const battle=GameSession.restore(snapshot);
     assert.equal(battle.execute({type:'SubmitVoyage',nodeId:'battle'}).ok,true);
     assert.equal(battle.execute({type:'EnterNode'}).ok,true);

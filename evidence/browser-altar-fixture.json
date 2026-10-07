@@ -1,0 +1,435 @@
+{
+  "schema": 1,
+  "contentVersion": "gameplay-experiment-v5",
+  "randomVersion": "xorshift32-v1",
+  "profile": {
+    "points": 0,
+    "purchases": {},
+    "pending": {},
+    "tech": [],
+    "rareRelics": [],
+    "discovered": {
+      "cards": [
+        "punch",
+        "wood",
+        "plastic",
+        "iron",
+        "cloth"
+      ],
+      "relics": [],
+      "monsters": [],
+      "diaries": [],
+      "endings": []
+    },
+    "completedNodes": 0,
+    "runs": 0,
+    "legacyCards": []
+  },
+  "state": {
+    "phase": "action",
+    "seed": 17,
+    "rng": 3809347730,
+    "originId": "strong",
+    "voyage": 1,
+    "length": 10,
+    "ap": 3,
+    "battleAp": 0,
+    "current": {
+      "hp": 40,
+      "hunger": 40,
+      "hydration": 40,
+      "sanity": 80
+    },
+    "base": {
+      "hpMax": 30,
+      "hungerMax": 100,
+      "hydrationMax": 100,
+      "sanityMax": 100,
+      "baseAp": 3,
+      "battleAp": 3,
+      "handLimit": 10,
+      "damage": 0
+    },
+    "bonuses": {},
+    "hand": [
+      {
+        "instanceId": "card-1",
+        "definitionId": "punch",
+        "quantity": 1,
+        "enchant": [],
+        "level": 1,
+        "stackLimit": 1
+      },
+      {
+        "instanceId": "card-2",
+        "definitionId": "wood",
+        "quantity": 1,
+        "enchant": [],
+        "level": 1,
+        "stackLimit": 1
+      },
+      {
+        "instanceId": "card-3",
+        "definitionId": "plastic",
+        "quantity": 1,
+        "enchant": [],
+        "level": 1,
+        "stackLimit": 1
+      },
+      {
+        "instanceId": "card-4",
+        "definitionId": "iron",
+        "quantity": 1,
+        "enchant": [],
+        "level": 1,
+        "stackLimit": 1
+      },
+      {
+        "instanceId": "card-5",
+        "definitionId": "plastic",
+        "quantity": 1,
+        "enchant": [],
+        "level": 1,
+        "stackLimit": 1,
+        "source": "spring:1"
+      },
+      {
+        "instanceId": "card-6",
+        "definitionId": "cloth",
+        "quantity": 1,
+        "enchant": [],
+        "level": 1,
+        "stackLimit": 1,
+        "source": "spring:1"
+      },
+      {
+        "instanceId": "card-7",
+        "definitionId": "iron",
+        "quantity": 1,
+        "enchant": [],
+        "level": 1,
+        "stackLimit": 1,
+        "source": "spring:1"
+      }
+    ],
+    "tools": [
+      "handtool"
+    ],
+    "cells": [
+      {
+        "id": "cell-0-0",
+        "x": 0,
+        "z": 0,
+        "state": "intact",
+        "damagedAt": null,
+        "equipment": null
+      },
+      {
+        "id": "cell-1-0",
+        "x": 1,
+        "z": 0,
+        "state": "intact",
+        "damagedAt": null,
+        "equipment": null
+      },
+      {
+        "id": "cell-0-1",
+        "x": 0,
+        "z": 1,
+        "state": "intact",
+        "damagedAt": null,
+        "equipment": null
+      },
+      {
+        "id": "cell-1-1",
+        "x": 1,
+        "z": 1,
+        "state": "intact",
+        "damagedAt": null,
+        "equipment": null
+      }
+    ],
+    "buffs": [],
+    "relicIds": [
+      "namedKnot"
+    ],
+    "log": [
+      {
+        "voyage": 1,
+        "groups": [
+          {
+            "name": "启航",
+            "entries": [
+              "出身：强壮之人；第1层，本层 10 次航行"
+            ]
+          },
+          {
+            "name": "补给",
+            "entries": [
+              "先领取涌泉资源 3 张，再选择航行节点"
+            ]
+          },
+          {
+            "name": "物资",
+            "entries": [
+              "获得 废铁",
+              "获得 布条",
+              "获得 塑料",
+              "获得 废铁",
+              "获得 塑料",
+              "获得 木头",
+              "获得 出拳"
+            ]
+          }
+        ]
+      }
+    ],
+    "candidates": [
+      {
+        "id": "fogGuide",
+        "name": "漂流灯塔",
+        "kind": "environment",
+        "description": "独立的雾中导引事件；守灯人不在休息节点收取费用。",
+        "options": [
+          {
+            "id": "guide",
+            "name": "接受雾中导引",
+            "description": "支付木头1；有完好燃灯时下一次导航揭示所有候选，下一次偏航概率降低15个百分点。",
+            "effects": [],
+            "cost": 0,
+            "cardCosts": {
+              "wood": 1
+            },
+            "special": "guide"
+          },
+          {
+            "id": "listen",
+            "name": "听取航线提醒",
+            "description": "免费获得1份木头。",
+            "effects": [
+              {
+                "type": "GiveCard",
+                "id": "wood"
+              }
+            ],
+            "cost": 0
+          },
+          {
+            "id": "leave",
+            "name": "离开灯塔",
+            "description": "不付出也不获得。",
+            "effects": [],
+            "cost": 0
+          }
+        ],
+        "instanceId": "candidate-8",
+        "visibility": "full"
+      },
+      {
+        "id": "drift",
+        "name": "漂浮物·遗失货袋",
+        "kind": "supply",
+        "description": "可用一份随机手牌换回确定材料。",
+        "options": [
+          {
+            "id": "bag",
+            "name": "换取货袋",
+            "description": "随机失去1份合格手牌，获得废铁与绳索各1。",
+            "effects": [
+              {
+                "type": "GiveCard",
+                "id": "iron"
+              },
+              {
+                "type": "GiveCard",
+                "id": "rope"
+              }
+            ],
+            "cost": 0,
+            "randomCardCost": 1
+          },
+          {
+            "id": "leave",
+            "name": "平稳驶过",
+            "description": "无代价、无奖励。",
+            "effects": [],
+            "cost": 0
+          }
+        ],
+        "instanceId": "candidate-9",
+        "variantId": "lostBag",
+        "visibility": "full"
+      },
+      {
+        "id": "camp",
+        "name": "灯火休整地",
+        "kind": "rest",
+        "description": "守灯人提供免费的安顿调整，每次只能领取一个方向的收益。",
+        "options": [
+          {
+            "id": "rest",
+            "name": "包扎补给休整",
+            "description": "免费休整；生命+15，饱食、水分、精神各+40，获得休整余裕。",
+            "effects": [
+              {
+                "type": "ChangeCurrent",
+                "stat": "hp",
+                "delta": 15
+              },
+              {
+                "type": "ChangeCurrent",
+                "stat": "hunger",
+                "delta": 40
+              },
+              {
+                "type": "ChangeCurrent",
+                "stat": "hydration",
+                "delta": 40
+              },
+              {
+                "type": "ChangeCurrent",
+                "stat": "sanity",
+                "delta": 40
+              },
+              {
+                "type": "AddBuff",
+                "id": "rested"
+              }
+            ],
+            "cost": 0
+          },
+          {
+            "id": "upgrade",
+            "name": "委托升级设备",
+            "description": "免费选择已安装设备升一级，不消耗目标。",
+            "effects": [],
+            "cost": 0,
+            "special": "upgrade"
+          },
+          {
+            "id": "enchant",
+            "name": "供奉附魔手牌",
+            "description": "免费选择战斗、生存或行动牌赋予回牌或瞬发，不消耗目标。",
+            "effects": [],
+            "cost": 0,
+            "special": "enchant"
+          },
+          {
+            "id": "leave",
+            "name": "继续航行",
+            "description": "不投入物资，也不获得休整效果。",
+            "effects": [],
+            "cost": 0
+          }
+        ],
+        "instanceId": "candidate-10",
+        "visibility": "full"
+      }
+    ],
+    "node": {
+      "id": "altar",
+      "name": "深潮祭坛",
+      "kind": "exchange",
+      "description": "先从固定的两件未持有普通藏品中选择一件，再以一种代价换取；藏品可拒绝，不能重抽。",
+      "options": [
+        {
+          "id": "sacrifice",
+          "name": "献出行囊",
+          "description": "随机失去3份合格手牌，获得所选普通藏品。",
+          "effects": [],
+          "cost": 0,
+          "randomCardCost": 3,
+          "special": "altar"
+        },
+        {
+          "id": "blood",
+          "name": "献出鲜血",
+          "description": "支付8 HP且至少剩1，获得所选普通藏品。",
+          "effects": [],
+          "cost": 0,
+          "statCosts": {
+            "hp": 8
+          },
+          "special": "altar"
+        },
+        {
+          "id": "raft",
+          "name": "献出筏身",
+          "description": "随机立即脱落一个合法外围格及其设备，获得所选普通藏品。",
+          "effects": [],
+          "cost": 0,
+          "detachCell": true,
+          "special": "altar"
+        },
+        {
+          "id": "leave",
+          "name": "离开祭坛",
+          "description": "无代价、无奖励。",
+          "effects": [],
+          "cost": 0
+        }
+      ],
+      "instanceId": "fixture-altar",
+      "visibility": "full",
+      "altarChoices": [
+        "deepContract",
+        "mendingNeedle"
+      ],
+      "resolved": false
+    },
+    "battle": null,
+    "nodeVisits": {},
+    "nodePool": [
+      "camp",
+      "crabBattle",
+      "altar",
+      "battle",
+      "camp",
+      "storm",
+      "storm",
+      "crabBattle",
+      "battle",
+      "jelly",
+      "drift",
+      "crabBattle",
+      "altar",
+      "fogGuide",
+      "storm",
+      "crabBattle",
+      "jellyBattle",
+      "drift"
+    ],
+    "lastNodeId": null,
+    "flags": {
+      "bossDefeated": false,
+      "avoidWave": false
+    },
+    "nextId": 11,
+    "completedNodes": 0,
+    "settledVoyage": 0,
+    "level": 1,
+    "xp": 0,
+    "pendingEnchant": 0,
+    "result": null,
+    "blessing": false,
+    "relicUsage": {},
+    "roundEventUnits": 0,
+    "pendingRelic": null,
+    "springClaimedVoyage": 1,
+    "navigation": {
+      "fixedHeading": false,
+      "plannedNodeId": null,
+      "actualNodeId": null
+    },
+    "guidance": null,
+    "layers": [
+      {
+        "definitionId": "layer1",
+        "length": 10,
+        "completed": false
+      }
+    ],
+    "layerIndex": 0,
+    "layerVoyage": 1
+  }
+}

@@ -1108,6 +1108,12 @@ small, .muted { color: var(--muted); }
 }
 
 /* Responsive Rules */
+.opportunity-summary { color: var(--gold, #d9b975); font-size: 13px; }
+.option-preview { display: block; margin: 6px 0; line-height: 1.5; }
+.navigation-controls, .altar-offer { padding: 12px; margin: 12px 0; border: 1px solid #625d48; border-radius: 8px; }
+.risk-copy { color: #efa69c; line-height: 1.6; }
+.candidate > .node-name { width: 100%; text-align: left; }
+.altar-offer .selected { outline: 2px solid #d9b975; }
 @media(max-width: 1050px) {
   .game-body { grid-template-columns: 155px minmax(0, 1fr) 240px; }
   .game-screen .topbar { align-items: flex-start; }

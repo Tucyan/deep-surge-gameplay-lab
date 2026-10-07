@@ -1,13 +1,18 @@
-import {CARDS,EQUIPMENT,RECIPES,CONFIG,ORIGINS,RELICS,BUFFS,META_SHOP,TECH,SHOP,NODES} from '../content/index.js';
+import {CARDS,EQUIPMENT,RECIPES,CONFIG,ORIGINS,RELICS,BUFFS,META_SHOP,TECH,SHOP,NODES,VOYAGE_EFFECTS} from '../content/index.js';
 import {clone,createProfile,random,stat,sources,capacity,enrichedCard} from './model.js';
 import {context} from './effects.js';
 import {raftCommand,endVoyage,expansionOptions,upgradeOptions} from './raft.js';
-import {createNodePool,candidates,submitVoyage,chooseOption,shopBuy,enchantCard} from './nodes.js';
+import {createNodePool,beginRound,submitVoyage,chooseOption,shopBuy,enchantCard} from './nodes.js';
+import {initializeLayers,selectLayer,isLayerEnd,validateLayers,layerDefinition} from './layers.js';
+import {scoutNode,fixHeading,navigationActions,environmentAmount,firstBaseActionExtra,spendBaseAction} from './environment.js';
+import {claimRelic,validateRelicUsage,initializeRelicUsage,hasMechanic} from './relic-rules.js';
+import {optionStatus,sacrificeCards,detachableCells} from './node-costs.js';
 import {enterBattle,attack,endBattleTurn,retreat} from './battle.js';
 import {profileCommand} from './profile.js';
 export {createProfile};
 const ACTIVE_PHASES=['navigation','action','discard','battle'];
 const RAFT_COMMANDS=['Craft','ExpandRaft','RepairCell','UpgradeEquipment','ActivateEquipment','FuelLamp'];
+const VOYAGE_SANITY_LOSS=(s,p)=>Math.max(0,-VOYAGE_EFFECTS.filter(e=>e.type==='ChangeCurrent'&&e.stat==='sanity').reduce((n,e)=>n+e.delta,0)+(hasMechanic(s,p,'contract')?5:0));
 export class GameSession{
  constructor(profile=createProfile()){this.profile=clone(profile);this.state=null;}
  serialize(){return clone({schema:CONFIG.schema,contentVersion:CONFIG.contentVersion,randomVersion:CONFIG.randomVersion,profile:this.profile,state:this.state});}
@@ -19,12 +24,15 @@ export class GameSession{
   for(const [id,n]of Object.entries(p.purchases))if(!META_SHOP[id]||!Number.isSafeInteger(n)||n<0||n>META_SHOP[id].maxPurchases)throw new Error('商店存档损坏');
   if(p.tech.some(id=>!TECH[id])||p.rareRelics.some(id=>RELICS[id]?.rarity!=='rare'))throw new Error('解锁存档损坏');
   if(s){
-   if(![...ACTIVE_PHASES,'finished'].includes(s.phase)||!ORIGINS[s.originId]||!Number.isSafeInteger(s.voyage)||!Number.isSafeInteger(s.length)||s.length<CONFIG.minVoyages||s.length>CONFIG.maxVoyages||s.voyage<1||s.voyage>s.length||!Number.isSafeInteger(s.rng)||!Array.isArray(s.hand)||!Array.isArray(s.cells)||!Array.isArray(s.buffs)||!Array.isArray(s.relicIds)||!Array.isArray(s.log)||!s.current||!s.base||!s.bonuses)throw new Error('本局存档损坏');
-   if(!Array.isArray(s.nodePool)||s.nodePool.length>(s.length-1)*CONFIG.nodePoolMultiplier||s.nodePool.some(id=>id==='boss'||!Object.hasOwn(NODES,id)))throw new Error('节点池存档损坏');
+   if(![...ACTIVE_PHASES,'finished'].includes(s.phase)||!ORIGINS[s.originId]||!Number.isSafeInteger(s.voyage)||s.voyage<1||!Number.isSafeInteger(s.rng)||s.rng<0||s.rng>0xffffffff||!Array.isArray(s.hand)||!Array.isArray(s.cells)||!Array.isArray(s.buffs)||!Array.isArray(s.relicIds)||!Array.isArray(s.log)||!s.current||!s.base||!s.bonuses)throw new Error('本局存档损坏');
+   validateLayers(s);validateRelicUsage(s);
+   if(s.springClaimedVoyage!==s.voyage||!s.navigation||typeof s.navigation.fixedHeading!=='boolean')throw new Error('涌泉/导航存档损坏');
+   if(!Array.isArray(s.nodePool)||s.nodePool.length>(s.length-1)*CONFIG.nodePoolMultiplier||s.nodePool.some(id=>NODES[id]?.boss||CONFIG.layers.some(l=>l.bossNodeId===id)||!Object.hasOwn(NODES,id)))throw new Error('节点池存档损坏');
    if(!s.nodeVisits||typeof s.nodeVisits!=='object'||Array.isArray(s.nodeVisits)||Object.entries(s.nodeVisits).some(([id,n])=>!Object.hasOwn(NODES,id)||!Number.isSafeInteger(n)||n<1)||s.lastNodeId!==null&&(!Object.hasOwn(NODES,s.lastNodeId)||!s.nodeVisits[s.lastNodeId]))throw new Error('节点历史存档损坏');
    const ids=new Set();for(const card of s.hand){if(!CARDS[card.definitionId]||typeof card.instanceId!=='string'||ids.has(card.instanceId)||!Number.isSafeInteger(card.quantity)||card.quantity<1||!Array.isArray(card.enchant)||card.enchant.some(x=>!['instant','return'].includes(x)))throw new Error('手牌存档损坏');ids.add(card.instanceId);}
    for(const c of s.cells){if(!['intact','damaged','detached'].includes(c.state)||!Number.isInteger(c.x)||!Number.isInteger(c.z)||c.x<0||c.z<0||c.x>3||c.z>3||c.equipment&&(!EQUIPMENT[c.equipment.definitionId]||c.equipment.level<1||c.equipment.level>3))throw new Error('木筏存档损坏');}
-   if(s.buffs.some(b=>!BUFFS[b.definitionId]||!Number.isFinite(b.remaining)||b.remaining<0)||s.relicIds.some(id=>!RELICS[id]))throw new Error('效果存档损坏');
+   if(s.buffs.some(b=>!BUFFS[b.definitionId]||!Number.isSafeInteger(b.remaining)||b.remaining<1||BUFFS[b.definitionId].environment&&(!Number.isSafeInteger(b.activeFrom)||b.activeFrom<1||b.activeFrom>s.voyage+1||b.pendingRefresh&&(!Number.isSafeInteger(b.pendingRefresh.voyage)||b.pendingRefresh.voyage!==s.voyage+1||!Number.isSafeInteger(b.pendingRefresh.remaining)||b.pendingRefresh.remaining<1)))||s.relicIds.some(id=>!RELICS[id]))throw new Error('效果存档损坏');
+   if(!Array.isArray(s.candidates)||s.candidates.some(c=>!NODES[c.id]||typeof c.instanceId!=='string'||!['full','detailsHidden','typeOnly','unknown'].includes(c.visibility)))throw new Error('候选存档损坏');
    for(const key of ['hp','hunger','hydration','sanity'])if(!Number.isFinite(s.current[key])||s.current[key]<0)throw new Error('数值存档损坏');
    if(!Number.isFinite(s.ap)||s.ap<0||!Number.isFinite(s.battleAp)||s.battleAp<0||!Array.isArray(s.candidates)||!Array.isArray(s.tools)||!s.flags||!Number.isSafeInteger(s.nextId))throw new Error('阶段存档损坏');
    if(s.phase==='battle'&&(!s.battle||!Array.isArray(s.battle.enemies)||!Number.isSafeInteger(s.battle.round)))throw new Error('战斗存档损坏');
@@ -35,9 +43,28 @@ export class GameSession{
  getView(){
   const s=this.state,p=this.profile;if(!s)return clone({phase:'home',profile:p,hand:[],cells:[],buffs:[],relics:[],log:[],candidates:[],node:null,battle:null,stats:CONFIG.base,current:CONFIG.initial,capacity:0,excess:0,recipeAvailability:{},upgradeOptions:[],expansionOptions:[]});
   const stats=Object.fromEntries(Object.keys(CONFIG.base).map(k=>[k,stat(s,p,k)]));
-  const recipeAvailability={};for(const [id,r]of Object.entries(RECIPES)){const enough=Object.entries(r.ingredients).every(([defId,amount])=>s.hand.filter(c=>c.definitionId===defId).reduce((sum,c)=>sum+c.quantity,0)>=amount);const unlocked=r.output!=='spearRack'||p.tech.includes('spear');recipeAvailability[id]={canCraft:s.phase==='action'&&s.ap>=r.cost&&enough&&unlocked,reason:!unlocked?'需解锁科技':s.phase!=='action'?'仅航行行动阶段':!enough?'缺少材料':s.ap<r.cost?'AP不足':''};}
+  const recipeAvailability={};for(const [id,r]of Object.entries(RECIPES)){const enough=Object.entries(r.ingredients).every(([defId,amount])=>s.hand.filter(c=>c.definitionId===defId).reduce((sum,c)=>sum+c.quantity,0)>=amount);const unlocked=r.output!=='spearRack'||p.tech.includes('spear'),cost=r.cost+firstBaseActionExtra(s);recipeAvailability[id]={cost,canCraft:!s.pendingRelic&&s.phase==='action'&&s.ap>=cost&&enough&&unlocked,reason:!unlocked?'需解锁科技':s.phase!=='action'?'仅航行行动阶段':s.pendingRelic?'先处理藏品':!enough?'缺少材料':s.ap<cost?'AP不足':''};}
   const ids=[...new Set([...s.relicIds,...p.rareRelics])];
-  return clone({...s,profile:p,stats,statDetails:sources(s,p),hand:s.hand.map(enrichedCard),capacity:capacity(s),excess:Math.max(0,capacity(s)-stats.handLimit),cells:s.cells.map(c=>({...c,equipment:c.equipment?{...EQUIPMENT[c.equipment.definitionId],...c.equipment}:null})),maxRaftSide:p.purchases.raft?4:3,relics:ids.map(id=>({id,...RELICS[id]})),buffs:s.buffs.map(b=>({...b,...BUFFS[b.definitionId]})),shop:SHOP.map(item=>({...item,price:p.purchases.coupon&&item.price>1?item.price-1:item.price,description:item.card?CARDS[item.card].description:RELICS[item.relic].description})),recipeAvailability,upgradeOptions:upgradeOptions(s),expansionOptions:expansionOptions(s,p)});
+  const view=clone({...s,profile:p,stats,statDetails:sources(s,p),hand:s.hand.map(enrichedCard),capacity:capacity(s),excess:Math.max(0,capacity(s)-stats.handLimit),cells:s.cells.map(c=>({...c,equipment:c.equipment?{...EQUIPMENT[c.equipment.definitionId],...c.equipment}:null})),maxRaftSide:p.purchases.raft?4:3,relics:ids.map(id=>({id,...RELICS[id]})),buffs:s.buffs.map(b=>({...b,...BUFFS[b.definitionId]})),shop:SHOP.map(item=>({...item,price:p.purchases.coupon&&item.price>1?item.price-1:item.price,description:item.card?CARDS[item.card].description:RELICS[item.relic].description})),recipeAvailability,upgradeOptions:upgradeOptions(s),expansionOptions:expansionOptions(s,p)});
+  view.layer={index:s.layerIndex,name:layerDefinition(s).name,total:s.layers.length,voyage:s.layerVoyage,length:s.length};
+  for(const c of view.hand)if(c.kind==='equipment')c.cost+=firstBaseActionExtra(s);
+  view.nodePoolCount=s.nodePool.length;delete view.nodePool;
+  view.navigationActions=navigationActions(s,p);
+  const statuses=(node,phase=s.phase)=>Object.fromEntries((node.options||[]).map(o=>[o.id,optionStatus({...s,phase,ap:phase==='navigation'?stats.baseAp:s.ap},p,o)]));
+  view.candidates=s.candidates.map(c=>{
+   const base={id:c.instanceId,instanceId:c.instanceId,visibility:c.visibility,boss:!!c.boss,safeRoute:!!c.safeRoute};
+   if(c.visibility==='unknown')return {...base,name:'未知停靠点',kind:'unknown',description:'详情与类型不可预知；到达后揭示，可能遭遇战斗。'};
+   if(c.visibility==='typeOnly')return {...base,name:'雾中停靠点',kind:c.kind,description:c.safeRoute?'已辨认非战斗航线，到达后揭示详情。':'只能辨认节点类型；到达后揭示详情。'};
+   if(c.visibility==='detailsHidden')return {...base,name:c.name,kind:c.kind,description:'选项、费用和奖励被迷雾遮蔽；到达后揭示。'};
+   const status=statuses(c,'navigation');return {...clone(c),...base,definitionId:c.id,optionStatus:status,opportunitySummary:['battle','ruin'].includes(c.kind)?'战斗节点：请检查敌方意图与战斗准备':Object.values(status).some(o=>o.canChoose)?'当前具备可用选项':'请检查费用或目标'};
+  });
+  if(view.node){view.node.optionStatus=statuses(s.node);view.node.altarChoices=(s.node.altarChoices||[]).map(id=>({id,...RELICS[id]}));view.node.sacrificeCandidates=sacrificeCards(s).map(enrichedCard);view.node.detachableCells=detachableCells(s).map(c=>({...c,equipment:c.equipment?{...c.equipment,...EQUIPMENT[c.equipment.definitionId]}:null}));}
+  if(view.pendingRelic)view.pendingRelic.choices=s.pendingRelic.choices.map(id=>({id,...RELICS[id]}));
+  const lamps=s.cells.filter(c=>c.state==='intact'&&c.equipment?.definitionId==='lamp'&&c.equipment.fuel>0);
+  let loss=VOYAGE_SANITY_LOSS(s,p);
+  if(ORIGINS[s.originId].reduceSanityLoss&&!lamps.length)loss=Math.max(0,loss-ORIGINS[s.originId].reduceSanityLoss);
+  view.sanityForecast=Math.min(stats.sanityMax,Math.max(0,s.current.sanity-loss)+lamps.reduce((n,c)=>n+15+5*(c.equipment.level-1),0)+(lamps.length&&hasMechanic(s,p,'ember')?5:0));
+  return view;
  }
  execute(command){
   const before=this.serialize();try{
@@ -52,20 +79,24 @@ export class GameSession{
  normalize(){if(!this.state)return;for(const k of ['hp','hunger','hydration','sanity'])this.state.current[k]=Math.min(this.state.current[k],stat(this.state,this.profile,k+'Max'));this.state.ap=Math.min(this.state.ap,stat(this.state,this.profile,'baseAp'));this.state.battleAp=Math.min(this.state.battleAp,stat(this.state,this.profile,'battleAp'));}
  newGame(command){
   if(this.state&&ACTIVE_PHASES.includes(this.state.phase))throw new Error('当前航行尚未结束');if(!ORIGINS[command.originId])throw new Error('选择一种出身');if(!Number.isSafeInteger(command.seed)||command.seed<0||command.seed>0xffffffff)throw new Error('种子须为0至4294967295的整数');
-  const p=this.profile;const s={phase:'navigation',seed:command.seed,rng:command.seed||0x9e3779b9,originId:command.originId,voyage:1,length:0,ap:0,battleAp:0,current:clone(CONFIG.initial),base:clone(CONFIG.base),bonuses:{},hand:[],tools:['handtool'],cells:[],buffs:[],relicIds:[],log:[],candidates:[],node:null,battle:null,nodeVisits:{},nodePool:[],lastNodeId:null,flags:{},nextId:1,completedNodes:0,settledVoyage:0,level:1,xp:0,pendingEnchant:0,result:null,blessing:false};this.state=s;
-  s.length=CONFIG.minVoyages+Math.floor(random(s)*(CONFIG.maxVoyages-CONFIG.minVoyages+1));s.current.hp=Math.max(1,Math.min(stat(s,p,'hpMax'),CONFIG.initial.hp+stat(s,p,'hpMax')-CONFIG.base.hpMax));
+  const p=this.profile;const s={phase:'navigation',seed:command.seed,rng:command.seed||0x9e3779b9,originId:command.originId,voyage:1,length:0,ap:0,battleAp:0,current:clone(CONFIG.initial),base:clone(CONFIG.base),bonuses:{},hand:[],tools:['handtool'],cells:[],buffs:[],relicIds:[],log:[],candidates:[],node:null,battle:null,nodeVisits:{},nodePool:[],lastNodeId:null,flags:{},nextId:1,completedNodes:0,settledVoyage:0,level:1,xp:0,pendingEnchant:0,result:null,blessing:false,relicUsage:{},roundEventUnits:0,pendingRelic:null,springClaimedVoyage:0,navigation:{fixedHeading:false},guidance:null};this.state=s;
+  initializeLayers(s);s.current.hp=Math.max(1,Math.min(stat(s,p,'hpMax'),CONFIG.initial.hp+stat(s,p,'hpMax')-CONFIG.base.hpMax));
   for(let z=0;z<2;z++)for(let x=0;x<2;x++)s.cells.push({id:'cell-'+x+'-'+z,x,z,state:'intact',damagedAt:null,equipment:null});
   const ctx=context(s,p);ctx.give('punch');ctx.give('wood');ctx.give('plastic');ctx.give('iron');
   if(p.purchases.inheritance)ctx.give('coin',3);for(const card of p.legacyCards)ctx.give(card.definitionId,1,{enchant:clone(card.enchant),source:'legacy'});
   if(p.pending.supply>0){ctx.give('filter');p.pending.supply--;}
   if(p.pending.blessing>0){s.blessing=true;p.pending.blessing--;}
-  s.nodePool=createNodePool(s);s.candidates=candidates(s);ctx.log('出身：'+ORIGINS[s.originId].name+'；本层 '+s.length+' 次航行','启航');
+  s.nodePool=createNodePool(s);beginRound(ctx);ctx.log('出身：'+ORIGINS[s.originId].name+'；'+layerDefinition(s).name+'，本层 '+s.length+' 次航行','启航');
  }
  handle(ctx,cmd){
   const {s,p}=ctx;if(s.phase==='finished')throw new Error('本局已结束，请返回主页');
+  if(s.pendingRelic&&!['ClaimRelic','AbandonRun'].includes(cmd.type))throw new Error('先领取或放弃待选藏品');
   if(RAFT_COMMANDS.includes(cmd.type)){raftCommand(ctx,cmd);return;}
   switch(cmd.type){
    case 'SubmitVoyage':submitVoyage(ctx,cmd);break;
+   case 'ScoutNode':scoutNode(ctx,cmd);break;
+   case 'FixHeading':fixHeading(ctx,cmd);break;
+   case 'ClaimRelic':claimRelic(ctx,cmd);break;
    case 'ChooseOption':chooseOption(ctx,cmd);break;
    case 'EnterNode':enterBattle(ctx);break;
    case 'ShopBuy':shopBuy(ctx,cmd);break;
@@ -74,7 +105,7 @@ export class GameSession{
    case 'EndBattleTurn':endBattleTurn(ctx);break;
    case 'Retreat':retreat(ctx);break;
    case 'DiscardCards':{ctx.require(s.phase==='discard','仅在弃牌阶段弃牌');ctx.require(Array.isArray(cmd.cardIds)&&new Set(cmd.cardIds).size===cmd.cardIds.length&&cmd.cardIds.length>0,'选择不同的手牌');for(const id of cmd.cardIds){const card=ctx.card(id);ctx.require(CARDS[card.definitionId].kind!=='negative','负面牌必须花AP清除');if(CARDS[card.definitionId].traits?.includes('return')||card.enchant.includes('return')){ctx.log(CARDS[card.definitionId].name+' 回牌，不能通过弃置腾出容量','弃牌');continue;}ctx.remove(id);ctx.log('弃置 '+CARDS[card.definitionId].name,'弃牌');}break;}
-   case 'FinishDiscard':{ctx.require(s.phase==='discard','当前不是弃牌阶段');ctx.require(capacity(s)<=ctx.stat('handLimit'),'手牌仍然超限');if(s.voyage===s.length){ctx.finish(!s.flags.bossDefeated?'withdrawn':ctx.feature('trueEndingEligible')&&s.flags.readDiary?'true':'survived');}else{s.voyage++;s.node=null;s.phase='navigation';s.candidates=candidates(s);}break;}
+   case 'FinishDiscard':{ctx.require(s.phase==='discard','当前不是弃牌阶段');ctx.require(capacity(s)<=ctx.stat('handLimit'),'手牌仍然超限');if(isLayerEnd(s)){if(!s.flags.bossDefeated){ctx.finish('withdrawn');break;}s.layers[s.layerIndex].completed=true;if(s.layerIndex===s.layers.length-1){ctx.finish(ctx.feature('trueEndingEligible')&&s.flags.readDiary?'true':'survived');break;}selectLayer(s,s.layerIndex+1);s.nodePool=createNodePool(s);}else s.layerVoyage++;s.voyage++;beginRound(ctx);break;}
    case 'EnchantCard':{ctx.require(s.phase==='action'&&s.pendingEnchant>0,'没有可领取的留存附魔');const card=enchantCard(ctx,cmd.cardId,cmd.enchant);p.legacyCards=[{definitionId:card.definitionId,enchant:clone(card.enchant)}];s.pendingEnchant--;break;}
    case 'AbandonRun':ctx.require(ACTIVE_PHASES.includes(s.phase),'当前没有进行中的航行');ctx.finish('abandon');break;
    default:throw new Error('未知操作：'+cmd.type);
@@ -84,7 +115,7 @@ export class GameSession{
   const {s}=ctx;ctx.require(['action','battle'].includes(s.phase),'当前不能出牌');const card=ctx.card(cmd.cardId),def=CARDS[card.definitionId];const cost=card.definitionId==='pollution'?def.cost:(card.enchant.includes('instant')?0:def.cost);
   ctx.require(!['resource','currency'].includes(def.kind),'资源用于合成、扩建或投料，货币用于商店');
   if(def.kind==='equipment'){
-   ctx.require(s.phase==='action','战斗中不能安装设备');const c=s.cells.find(c=>c.id===cmd.targetId);ctx.require(c?.state==='intact'&&!c.equipment,'选择完好的空筏格');ctx.spend(cost);ctx.remove(card.instanceId);c.equipment={instanceId:ctx.id('equipment'),definitionId:card.definitionId,level:card.level||1,fuel:0,progress:0};ctx.log('安装 '+def.name+' 于 '+c.id,'木筏');return;
+   ctx.require(s.phase==='action','战斗中不能安装设备');const c=s.cells.find(c=>c.id===cmd.targetId);ctx.require(c?.state==='intact'&&!c.equipment,'选择完好的空筏格');spendBaseAction(ctx,cost);ctx.remove(card.instanceId);c.equipment={instanceId:ctx.id('equipment'),definitionId:card.definitionId,level:card.level||1,fuel:0,progress:0};ctx.log('安装 '+def.name+' 于 '+c.id,'木筏');return;
   }
   if(def.kind==='action'){
    ctx.require(s.phase==='action','此牌仅在航行行动阶段使用');

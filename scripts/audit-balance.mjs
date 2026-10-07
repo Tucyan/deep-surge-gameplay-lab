@@ -15,6 +15,6 @@ for(const strategy of strategies)for(const originId of Object.keys(ORIGINS)){
  }
  runs.push(...group);process.stdout.write(JSON.stringify({strategy,originId,...summarizeRuns(group)})+'\n');
 }
-const config=getActiveConfig(),report={date:'2026-10-05',contentVersion:config.content.CONFIG.contentVersion,configFingerprint:configFingerprint(config),sampleCount,seeds:'imul(index,2654435761) >>> 0',profile:'fresh',summaries:strategies.map(strategy=>({strategy,...summarizeRuns(runs.filter(r=>r.strategy===strategy))})),byOrigin:strategies.flatMap(strategy=>Object.keys(ORIGINS).map(originId=>({strategy,originId,...summarizeRuns(runs.filter(r=>r.strategy===strategy&&r.originId===originId))}))),runs};
+const config=getActiveConfig(),report={date:'2026-10-07',contentVersion:config.content.CONFIG.contentVersion,configFingerprint:configFingerprint(config),sampleCount,seeds:'imul(index,2654435761) >>> 0',profile:'fresh',summaries:strategies.map(strategy=>({strategy,...summarizeRuns(runs.filter(r=>r.strategy===strategy))})),byOrigin:strategies.flatMap(strategy=>Object.keys(ORIGINS).map(originId=>({strategy,originId,...summarizeRuns(runs.filter(r=>r.strategy===strategy&&r.originId===originId))}))),runs};
 await writeFile(new URL('../evidence/balance-audit-'+config.content.CONFIG.contentVersion.split('-').at(-1)+'.json',import.meta.url),JSON.stringify(report,null,2)+'\n');
 process.stdout.write('TOTAL '+JSON.stringify(report.summaries)+'\n');

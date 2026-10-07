@@ -1,4 +1,12 @@
 export const RELICS={
+ emberWick:{name:'余烬灯芯',rarity:'normal',mechanic:'ember',description:'每航行燃灯结算额外恢复SAN 5；至少一盏完好灯实际燃烧时触发，多灯只触发一次。'},
+ tideLens:{name:'潮纹镜片',rarity:'normal',mechanic:'scout',description:'获得时免费侦察一次；使用后两次完整航行恢复，最多存一次，揭示一个迷雾候选。'},
+ headingNeedle:{name:'定向骨针',rarity:'normal',mechanic:'heading',description:'每层两次，导航时主动使用，使本次航行免于混乱偏航。'},
+ mendingNeedle:{name:'缝潮针',rarity:'normal',mechanic:'repair',description:'每航行第一次直接修理筏格少耗1木头，仍需AP；不减扩建或修补包制造费用。'},
+ namedKnot:{name:'记名绳结',rarity:'normal',mechanic:'protect',description:'每层两次，在事件随机失牌前保护一个合格卡单位；仍须足额支付其他单位。'},
+ scavengerRing:{name:'拾荒者指环',rarity:'normal',mechanic:'salvage',description:'每轮事件累计实际消耗3份非货币手牌后获得1份随机基础资源，每轮一次；不计制造、燃灯、交易和弃牌。'},
+ emptyCompass:{name:'空腹罗盘',rarity:'normal',mechanic:'lightHand',description:'轮末航耗前手牌容量不超过5时，食水航耗各减少5；后续生产与弃牌不改变判定。'},
+ deepContract:{name:'深潮契印',rarity:'normal',mechanic:'contract',drawback:true,description:'自愿支付SAN并完成事件后获得1贝币，每轮一次；基础SAN航耗额外增加5。导航侦察不触发。'},
  luckyShell:{name:'回声贝壳',rarity:'normal',description:'普通出牌有25%概率回手；不影响污染牌与设备安装。',returnChance:0.25},
  guardian:{name:'守潮骨片',rarity:'normal',description:'生命上限+5。',modifiers:{hpMax:5}},
  curse:{name:'锈蚀金币',rarity:'normal',description:'攻击伤害+2，但基地AP上限−1。',modifiers:{damage:2,baseAp:-1}},

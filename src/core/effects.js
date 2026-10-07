@@ -1,6 +1,9 @@
 import {CARDS,ORIGINS,BUFFS,RELICS,CONFIG,ENDINGS} from '../content/index.js';
 import {random,pick,stat,activeEquipment,discover,sources} from './model.js';
+import {addEnvironment} from './environment.js';
+import {initializeRelicUsage,offerRelic} from './relic-rules.js';
 export function context(s,p){
+ for(const id of [...s.relicIds,...p.rareRelics])initializeRelicUsage(s,id);
  const ctx={s,p,random:()=>random(s),pick:list=>pick(s,list),stat:key=>stat(s,p,key),id:prefix=>prefix+'-'+s.nextId++,require:(valid,message)=>{if(!valid)throw new Error(message);}};
  ctx.log=(text,group='行动')=>{let branch=s.log.find(l=>l.voyage===s.voyage);if(!branch){branch={voyage:s.voyage,groups:[]};s.log.unshift(branch);}let section=branch.groups.find(g=>g.name===group);if(!section){section={name:group,entries:[]};branch.groups.unshift(section);}section.entries.unshift(text);};
  ctx.card=id=>{const card=s.hand.find(c=>c.instanceId===id);ctx.require(card,'找不到这张手牌');return card;};
@@ -13,7 +16,7 @@ export function context(s,p){
   else for(let i=0;i<amount;i++)s.hand.push({instanceId:ctx.id('card'),definitionId:id,quantity:1,enchant:[],level:1,stackLimit:1,...extra});
   discover(p,'cards',id);ctx.log('获得 '+CARDS[id].name+(amount>1?' ×'+amount:''),'物资');
  };
- ctx.relic=id=>{ctx.require(RELICS[id],'未知藏品');if(RELICS[id].rarity==='rare'){if(!p.rareRelics.includes(id))p.rareRelics.push(id);}else if(!s.relicIds.includes(id))s.relicIds.push(id);discover(p,'relics',id);ctx.log('获得藏品：'+RELICS[id].name,'藏品');};
+ ctx.relic=id=>{ctx.require(RELICS[id],'未知藏品');if(RELICS[id].rarity==='rare'){if(!p.rareRelics.includes(id))p.rareRelics.push(id);}else if(!s.relicIds.includes(id))s.relicIds.push(id);initializeRelicUsage(s,id);discover(p,'relics',id);ctx.log('获得藏品：'+RELICS[id].name,'藏品');};
  ctx.hasRelic=id=>s.relicIds.includes(id)||p.rareRelics.includes(id);
  ctx.feature=key=>sources(s,p).some(src=>src[key]);
  ctx.returnCard=(card,cost)=>{
@@ -31,6 +34,7 @@ export function context(s,p){
  };
  ctx.buff=(id,reason='action')=>{
   const def=BUFFS[id];ctx.require(def,'未知增减益');
+  if(def.environment){addEnvironment(ctx,id);return;}
   if(reason==='enemy'&&def.polarity==='negative'&&ORIGINS[s.originId]?.enemyBuffImmune){ctx.log('出身免疫了 '+def.name,'战斗');return;}
   const old=s.buffs.find(b=>b.definitionId===id);
   if(old){if(def.stacking==='stack')old.stacks++;else old.remaining=def.duration;old.appliedVoyage=s.voyage;old.appliedRound=s.battle?.round||0;}
@@ -39,7 +43,7 @@ export function context(s,p){
  };
  ctx.finish=kind=>{
   if(s.result)return;
-  s.phase='finished';s.battle=null;s.buffs=s.buffs.filter(b=>b.clock!=='battle');s.ap=0;s.battleAp=0;s.candidates=[];
+  s.phase='finished';s.battle=null;s.pendingRelic=null;s.buffs=s.buffs.filter(b=>b.clock!=='battle');s.ap=0;s.battleAp=0;s.candidates=[];
   const points=s.completedNodes;p.points+=points;p.completedNodes+=points;p.runs++;
   discover(p,'endings',kind);
   for(const [id,def]of Object.entries(RELICS).sort(([a],[b])=>a.localeCompare(b))){const unlock=def.unlock;if(def.rarity!=='rare'||!unlock||p.rareRelics.includes(id))continue;const earned=(!unlock.nodes||p.completedNodes>=unlock.nodes)&&(!unlock.endings||p.discovered.endings.filter(e=>e!=='abandon').length>=unlock.endings);if(earned)ctx.relic(id);}
@@ -53,7 +57,7 @@ export function context(s,p){
  ctx.spend=(amount,battle=false)=>{ctx.require(Number.isFinite(amount)&&amount>=0,'无效AP费用');const key=battle?'battleAp':'ap';ctx.require(s[key]>=amount,'AP不足');s[key]-=amount;};
  ctx.tick=(clock)=>{
   for(const b of [...s.buffs]){
-   if(b.clock!==clock)continue;const def=BUFFS[b.definitionId];
+   if(b.clock!==clock)continue;const def=BUFFS[b.definitionId];if(def.environment)continue;
    if(clock==='battle'&&b.appliedRound===s.battle?.round||clock==='voyage'&&b.appliedVoyage===s.voyage)continue;
    for(const e of def.tick||[]){ctx.apply(e,'buff:'+b.instanceId);if(s.phase==='finished'||!s.battle&&clock==='battle')return;}
    b.remaining--;if(b.remaining<=0){s.buffs=s.buffs.filter(x=>x.instanceId!==b.instanceId);ctx.log(def.name+' 已结束','增减益');}
@@ -64,9 +68,9 @@ export function context(s,p){
    case 'ChangeCurrent':ctx.change(effect.stat,effect.delta,effect.reason||'action');if(effect.stat==='hp')ctx.checkAlive();break;
    case 'GiveCard':ctx.give(effect.id,effect.amount||1,{source});break;
    case 'AddBuff':ctx.buff(effect.id,effect.reason||source);break;
-   case 'GrantRelic':ctx.relic(effect.id);break;
+   case 'GrantRelic':if(RELICS[effect.id]?.rarity==='normal'&&RELICS[effect.id]?.drawback)offerRelic(ctx,[effect.id],source);else ctx.relic(effect.id);break;
    case 'SetFlag':s.flags[effect.key]=effect.value;break;
-   case 'DamageCell':{const all=s.cells.filter(c=>c.state!=='detached');const edges=all.filter(c=>[[1,0],[-1,0],[0,1],[0,-1]].some(([x,z])=>!all.some(other=>other.x===c.x+x&&other.z===c.z+z)));const cell=ctx.pick(edges.sort((a,b)=>a.id.localeCompare(b.id)));if(cell){if(cell.state==='damaged'){cell.state='detached';cell.equipment=null;cell.damagedAt=null;}else{cell.state='damaged';cell.damagedAt=s.voyage;}ctx.log('筏格 '+cell.id+' '+(cell.state==='damaged'?'破损':'脱落'),'木筏');}break;}
+   case 'DamageCell':{const all=s.cells.filter(c=>c.state!=='detached');const edges=all.filter(c=>[[1,0],[-1,0],[0,1],[0,-1]].some(([x,z])=>!all.some(other=>other.x===c.x+x&&other.z===c.z+z)));const cell=ctx.pick(edges.filter(c=>!effect.damageOnly||c.state==='intact').sort((a,b)=>a.id.localeCompare(b.id)));if(cell){if(cell.state==='damaged'&&!effect.damageOnly){cell.state='detached';cell.equipment=null;cell.damagedAt=null;}else{cell.state='damaged';cell.damagedAt=s.voyage;}ctx.log('筏格 '+cell.id+' '+(cell.state==='damaged'?'破损':'脱落'),'木筏');}break;}
    default:throw new Error('未知效果：'+effect.type);
   }
  };

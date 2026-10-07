@@ -1,5 +1,7 @@
 import {MONSTERS,EQUIPMENT,CARDS,CONFIG,ORIGINS,DIARIES,RELICS} from '../content/index.js';
 import {activeEquipment,discover} from './model.js';
+import {environmentAmount} from './environment.js';
+import {offerRelic,relicChoices} from './relic-rules.js';
 export function battleSupply(ctx){
  const {s}=ctx;s.battleAp=ctx.stat('battleAp');
  for(const u of activeEquipment(s)){const def=EQUIPMENT[u.definitionId];if(def.battleOutput)ctx.give(def.battleOutput,1,{battleOnly:true,source:u.instanceId,stackLimit:u.definitionId==='crossbow'?u.level:1,bonusDamage:u.definitionId==='spearRack'?u.level-1:0});}
@@ -7,7 +9,8 @@ export function battleSupply(ctx){
 }
 export function enterBattle(ctx){
  const {s,p}=ctx;ctx.require(s.phase==='action'&&s.node&&!s.node.resolved&&['battle','ruin'].includes(s.node.kind),'当前节点不是待进入战斗');const def=MONSTERS[s.node.monster];
- s.battle={round:1,ruin:s.node.kind==='ruin',boss:!!s.node.boss,entryHp:s.current.hp,enemies:[{instanceId:ctx.id('enemy'),definitionId:s.node.monster,name:def.name,hp:def.hp,maxHp:def.hp,damage:def.damage,intent:def.intent}]};
+ const extra=environmentAmount(s,'bloodMoon'),damage=def.damage+extra;
+ s.battle={round:1,ruin:s.node.kind==='ruin',boss:!!s.node.boss,entryHp:s.current.hp,enemies:[{instanceId:ctx.id('enemy'),definitionId:s.node.monster,name:def.name,hp:def.hp,maxHp:def.hp,damage,intent:extra?'血月：直接生命攻击 −'+damage+'；'+def.intent.replace(/生命[−-]\d+/g,'生命−'+damage):def.intent}]};
  s.phase='battle';discover(p,'monsters',s.node.monster);ctx.log('进入 '+def.name+' 战斗','战斗');if(s.blessing)ctx.buff('inspired','shop');battleSupply(ctx);
 }
 export function grantXp(ctx,amount){
@@ -20,7 +23,8 @@ export function grantXp(ctx,amount){
 export function finishBattle(ctx,won){
  const {s,p}=ctx,old=s.battle;if(!old)return;
  if(won){ctx.give('coin',old.boss?5:2);ctx.give('corpse');grantXp(ctx,old.boss?CONFIG.bossXp:CONFIG.battleXp);
-  if(old.ruin){if(ctx.random()<0.5)ctx.relic(ctx.pick(Object.keys(RELICS).filter(id=>RELICS[id].rarity==='normal').sort()));else{const unread=DIARIES.filter(d=>!p.discovered.diaries.includes(d.id));const diary=ctx.pick(unread.length?unread:DIARIES);discover(p,'diaries',diary.id);s.flags.readDiary=true;ctx.log('发现 '+diary.name,'故事');}}
+  if(!old.boss&&environmentAmount(s,'bloodMoon')>0)ctx.give('coin');
+  if(old.ruin){if(ctx.random()<0.5)offerRelic(ctx,relicChoices(ctx,2),'遗迹胜利');else{const unread=DIARIES.filter(d=>!p.discovered.diaries.includes(d.id));const diary=ctx.pick(unread.length?unread:DIARIES);discover(p,'diaries',diary.id);s.flags.readDiary=true;ctx.log('发现 '+diary.name,'故事');}}
   if(old.boss)s.flags.bossDefeated=true;
  }
  s.node.resolved=true;s.completedNodes++;s.battle=null;s.battleAp=0;s.buffs=s.buffs.filter(b=>b.clock!=='battle');s.hand=s.hand.filter(c=>!c.battleOnly&&c.definitionId!=='pollution');s.phase='action';ctx.log(won?'战斗胜利，返回航行行动':'撤离战斗，没有奖励','战斗');

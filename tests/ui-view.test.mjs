@@ -15,7 +15,7 @@ test('log presentation puts the newest voyage, branch and message first without 
 test('session logs retain the core newest-first message order when rendered',()=>{
   let game=new GameSession();
   assert.equal(game.execute({type:'NewGame',seed:0,originId:'strong'}).ok,true);
-  const data=game.serialize();data.state.nodePool=['drift'];data.state.candidates=[structuredClone(NODES.drift)];
+  const data=game.serialize();data.state.nodePool=['drift'];data.state.candidates=[{...structuredClone(NODES.drift),instanceId:"fixture-drift",visibility:"full"}];
   for(const id of ['rope','cloth'])data.state.hand.push({instanceId:'test-'+id,definitionId:id,quantity:1,enchant:[],stackLimit:1});
   game=GameSession.restore(data);
   assert.equal(game.execute({type:'SubmitVoyage',nodeId:'drift'}).ok,true);

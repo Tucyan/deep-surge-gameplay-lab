@@ -51,6 +51,6 @@ test('两倍池走完普通航程仍留半池，最终候选固定Boss，存档�
    const r=run.execute(command);assert.equal(r.ok,true,r.errors.join(';'));
   }
  }
- assert.equal(run.getView().nodePool.length,length-1);assert.deepEqual(run.getView().candidates.map(n=>n.id),['boss']);
+ assert.equal(run.getView().nodePoolCount,length-1);assert.deepEqual(run.getView().candidates.map(n=>n.definitionId),['boss']);
  assert.deepEqual(GameSession.restore(run.serialize()).getView(),run.getView());
 });
